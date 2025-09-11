@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Variables Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        .main-header {
+            text-align: center;
+            padding: 2rem 0;
+            background: linear-gradient(90deg, #FF6B35 0%, #F7931E 100%);
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        .main-header h1 {
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+
+        .main-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .upload-section {
+            background-color: #f8f9fa;
+            padding: 2rem;
+            border-radius: 10px;
+            border: 2px dashed #FF6B35;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .upload-section h3 {
+            color: #FF6B35;
+            margin-bottom: 1rem;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            background-color: #FF6B35;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .file-input-button:hover {
+            background-color: #e55a2b;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .stats-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            border-top: 3px solid #FF6B35;
+        }
+
+        .stats-card h3 {
+            font-size: 2rem;
+            color: #FF6B35;
+            margin-bottom: 0.5rem;
+        }
+
+        .operation-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .operation-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #FF6B35;
+        }
+
+        .operation-badge {
+            display: inline-block;
+            background-color: #FF6B35;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-right: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .operation-badge.subtraction {
+            background-color: #E74C3C;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            background-color: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #FF6B35;
+            box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.2);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: #FF6B35;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #e55a2b;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .formula-display {
+            background-color: #f0f8ff;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+            font-family: 'Courier New', monospace;
+            margin: 0.5rem 0;
+            font-weight: bold;
+        }
+
+        .result-summary {
+            background-color: #e8f5e8;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+            margin: 0.5rem 0;
+        }
+
+        .table-container {
+            max-height: 400px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .data-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .variable-selector {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            background-color: white;
+        }
+
+        .variable-option {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .variable-option:hover {
+            background-color: #f8f9fa;
+        }
+
+        .variable-option input {
+            margin-right: 0.5rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .section {
+            margin: 2rem 0;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #FF6B35;
+        }
+
+        .section h3 {
+            color: #555;
+            margin-bottom: 1rem;
+        }
+
+        .footer {
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+            border-top: 1px solid #ddd;
+            margin-top: 3rem;
+        }
+
+        .numeric-columns {
+            background-color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+            margin: 1rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .main-header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <h1>🧮 Create New Variables Tool</h1>
+        <p>Create new calculated variables using addition and subtraction operations</p>
+    </div>
+
+    <div class="container">
+        <!-- Upload Section -->
+        <div id="uploadSection">
+            <div class="upload-section">
+                <h3>📁 Upload Your Data File</h3>
+                <p>Upload a CSV or Excel file to create new calculated variables</p>
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" class="file-input" accept=".csv,.xlsx,.xls">
+                    <button class="file-input-button">Choose File</button>
+                </div>
+                <div id="uploadStatus" style="margin-top: 1rem;"></div>
+            </div>
+
+            <!-- How it works section -->
+            <div class="section">
+                <h2>ℹ️ How It Works</h2>
+                <div class="form-row">
+                    <div>
+                        <h3>Variable Creation Process:</h3>
+                        <ol style="padding-left: 1.5rem; line-height: 1.8;">
+                            <li><strong>Upload File:</strong> CSV or Excel with numeric data</li>
+                            <li><strong>Choose Operations:</strong> Addition or Subtraction</li>
+                            <li><strong>Select Variables:</strong> Pick columns for calculations</li>
+                            <li><strong>Name Variables:</strong> Give meaningful names to new variables</li>
+                            <li><strong>Create & Download:</strong> Generate dataset with new variables</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h3>Operation Types:</h3>
+                        <div style="margin-bottom: 1rem;">
+                            <strong>➕ Addition:</strong>
+                            <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                                <li>Select 2+ numeric variables</li>
+                                <li>Creates sum of all selected variables</li>
+                                <li>Example: Total_Score = Math + Science + English</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong>➖ Subtraction:</strong>
+                            <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                                <li>Select exactly 2 numeric variables</li>
+                                <li>First variable minus second variable</li>
+                                <li>Negative results automatically become 0</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tool Features -->
+            <div class="section">
+                <h2>✨ Tool Features</h2>
+                <div class="form-row">
+                    <div>
+                        <h3>🧮 Smart Calculations:</h3>
+                        <ul style="padding-left: 1.5rem; line-height: 1.8;">
+                            <li>Multiple operations in one session</li>
+                            <li>Real-time formula preview</li>
+                            <li>Automatic negative value handling</li>
+                            <li>Comprehensive validation</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>📊 Data Management:</h3>
+                        <ul style="padding-left: 1.5rem; line-height: 1.8;">
+                            <li>Original data preservation</li>
+                            <li>Detailed operation logging</li>
+                            <li>Statistics for new variables</li>
+                            <li>Excel and CSV export options</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content (hidden initially) -->
+        <div id="mainContent" class="hidden">
+            <!-- Dataset Overview -->
+            <div class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>📊 Current Dataset Overview</h2>
+                    <button id="resetBtn" class="btn btn-secondary">🔄 Upload New File</button>
+                </div>
+                
+                <div id="statsGrid" class="stats-grid">
+                    <!-- Stats will be populated here -->
+                </div>
+
+                <div id="numericColumns" class="numeric-columns">
+                    <!-- Numeric columns will be listed here -->
+                </div>
+            </div>
+
+            <!-- Operations Definition -->
+            <div id="operationsSection" class="section">
+                <h2>🧮 Define New Variables</h2>
+                
+                <div class="form-group">
+                    <label for="numOperations">How many new variables do you want to create?</label>
+                    <input type="number" id="numOperations" class="form-control" min="1" max="10" value="1" style="max-width: 200px;">
+                </div>
+
+                <div id="operationsContainer">
+                    <!-- Operations will be generated here -->
+                </div>
+
+                <button id="createVariablesBtn" class="btn btn-primary" style="margin-top: 1rem;">🧮 Create New Variables</button>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="section hidden">
+                <h2>📊 Results</h2>
+                
+                <h3>📋 Operations Summary</h3>
+                <div id="operationsSummary"></div>
+
+                <h3>📈 Dataset with New Variables</h3>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="showAllColumns"> Show all columns
+                    </label>
+                </div>
+                <div id="dataTableContainer" class="table-container"></div>
+
+                <h3>📊 Statistics for New Variables</h3>
+                <div id="statsTableContainer" class="table-container"></div>
+
+                <h3>💾 Download Dataset with New Variables</h3>
+                <div class="form-row">
+                    <button id="downloadCsv" class="btn btn-success">📥 Download as CSV</button>
+                    <button id="downloadExcel" class="btn btn-success">📥 Download as Excel</button>
+                </div>
+
+                <button id="createDifferentBtn" class="btn btn-secondary" style="margin-top: 1rem;">🧮 Create Different Variables</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>🧮 Built with HTML/CSS/JavaScript | Create New Variables Tool v1.0</p>
+    </div>
+
+    <script>
+        class VariableCalculator {
+            constructor() {
+                this.data = null;
+                this.numericColumns = [];
+                this.operations = [];
+                this.resultData = null;
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileUpload(e));
+                document.getElementById('resetBtn').addEventListener('click', () => this.reset());
+                document.getElementById('numOperations').addEventListener('input', (e) => this.generateOperationForms(parseInt(e.target.value)));
+                document.getElementById('createVariablesBtn').addEventListener('click', () => this.createVariables());
+                document.getElementById('showAllColumns').addEventListener('change', (e) => this.updateDataTable(e.target.checked));
+                document.getElementById('createDifferentBtn').addEventListener('click', () => this.resetOperations());
+                document.getElementById('downloadCsv').addEventListener('click', () => this.downloadCsv());
+                document.getElementById('downloadExcel').addEventListener('click', () => this.downloadExcel());
+            }
+
+            handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+
+                reader.onload = (e) => {
+                    try {
+                        if (fileExtension === 'csv') {
+                            this.parseCSV(e.target.result, file.name);
+                        } else if (['xlsx', 'xls'].includes(fileExtension)) {
+                            this.parseExcel(e.target.result, file.name);
+                        }
+                    } catch (error) {
+                        this.showAlert('Error reading file: ' + error.message, 'error');
+                    }
+                };
+
+                if (fileExtension === 'csv') {
+                    reader.readAsText(file);
+                } else {
+                    reader.readAsArrayBuffer(file);
+                }
+            }
+
+            parseCSV(csvText, filename) {
+                const parsed = Papa.parse(csvText, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    transformHeader: (header) => header.trim()
+                });
+
+                if (parsed.errors.length > 0) {
+                    throw new Error('CSV parsing errors: ' + parsed.errors.map(e => e.message).join(', '));
+                }
+
+                this.processData(parsed.data, filename);
+            }
+
+            parseExcel(arrayBuffer, filename) {
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
+                    header: 1,
+                    defval: null,
+                    raw: false
+                });
+
+                if (jsonData.length < 2) {
+                    throw new Error('Excel file must have at least a header row and one data row');
+                }
+
+                // Convert to object format
+                const headers = jsonData[0].map(h => String(h).trim());
+                const data = jsonData.slice(1).map(row => {
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        let value = row[index];
+                        if (value !== null && value !== undefined && value !== '') {
+                            // Try to convert to number if possible
+                            const numValue = parseFloat(value);
+                            if (!isNaN(numValue) && isFinite(numValue)) {
+                                value = numValue;
+                            }
+                        }
+                        obj[header] = value;
+                    });
+                    return obj;
+                });
+
+                this.processData(data, filename);
+            }
+
+            processData(data, filename) {
+                this.data = data;
+                this.numericColumns = this.getNumericColumns(data);
+
+                if (this.numericColumns.length < 2) {
+                    this.showAlert('Dataset must have at least 2 numeric columns to create new variables.', 'error');
+                    return;
+                }
+
+                this.showAlert(`File uploaded successfully!`, 'success');
+                this.showDatasetOverview(filename);
+                this.generateOperationForms(1);
+
+                document.getElementById('uploadSection').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+            }
+
+            getNumericColumns(data) {
+                if (data.length === 0) return [];
+
+                const sample = data[0];
+                return Object.keys(sample).filter(key => {
+                    // Check if most values in this column are numeric
+                    const values = data.map(row => row[key]).filter(v => v !== null && v !== undefined && v !== '');
+                    const numericValues = values.filter(v => typeof v === 'number' || (!isNaN(parseFloat(v)) && isFinite(parseFloat(v))));
+                    return numericValues.length > values.length * 0.5; // At least 50% numeric
+                });
+            }
+
+            showDatasetOverview(filename) {
+                const textCols = Object.keys(this.data[0]).length - this.numericColumns.length;
+
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="stats-card">
+                        <h3>${this.data.length.toLocaleString()}</h3>
+                        <p>Rows</p>
+                    </div>
+                    <div class="stats-card">
+                        <h3>${Object.keys(this.data[0]).length}</h3>
+                        <p>Total Columns</p>
+                    </div>
+                    <div class="stats-card">
+                        <h3>${this.numericColumns.length}</h3>
+                        <p>Numeric Columns</p>
+                    </div>
+                    <div class="stats-card">
+                        <h3>${textCols}</h3>
+                        <p>Text Columns</p>
+                    </div>
+                `;
+
+                document.getElementById('numericColumns').innerHTML = `
+                    <h3>🔢 Available Numeric Columns</h3>
+                    <p><strong>Columns available for calculations:</strong> ${this.numericColumns.join(', ')}</p>
+                `;
+            }
+
+            generateOperationForms(numOperations) {
+                const container = document.getElementById('operationsContainer');
+                container.innerHTML = '';
+
+                for (let i = 0; i < numOperations; i++) {
+                    const formHtml = this.createOperationForm(i);
+                    container.insertAdjacentHTML('beforeend', formHtml);
+                }
+
+                // Bind events for new forms
+                this.bindOperationEvents();
+            }
+
+            createOperationForm(index) {
+                return `
+                    <div class="operation-card" data-index="${index}">
+                        <div class="operation-header">
+                            <h4>New Variable ${index + 1}</h4>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Operation Type</label>
+                                <select class="form-control operation-type" data-index="${index}">
+                                    <option value="Addition">Addition</option>
+                                    <option value="Subtraction">Subtraction</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>New Variable Name</label>
+                                <input type="text" class="form-control variable-name" placeholder="Enter name for new variable ${index + 1}" data-index="${index}">
+                            </div>
+                        </div>
+
+                        <div class="operation-details" data-index="${index}">
+                            <div class="operation-badge">➕ Addition</div>
+                            <p><strong>Select 2 or more variables to add together</strong></p>
+                            <div class="variable-selector" data-index="${index}">
+                                ${this.createVariableOptions(index)}
+                            </div>
+                        </div>
+
+                        <div class="formula-display" data-index="${index}" style="display: none;">
+                            <strong>Formula:</strong> <span class="formula-text"></span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            createVariableOptions(index) {
+                return this.numericColumns.map(col => `
+                    <div class="variable-option">
+                        <input type="checkbox" id="var_${index}_${col}" value="${col}" data-index="${index}">
+                        <label for="var_${index}_${col}">${col}</label>
+                    </div>
+                `).join('');
+            }
+
+            bindOperationEvents() {
+                // Operation type change
+                document.querySelectorAll('.operation-type').forEach(select => {
+                    select.addEventListener('change', (e) => this.updateOperationType(parseInt(e.target.dataset.index), e.target.value));
+                });
+
+                // Variable name input
+                document.querySelectorAll('.variable-name').forEach(input => {
+                    input.addEventListener('input', (e) => this.updateFormula(parseInt(e.target.dataset.index)));
+                });
+
+                // Variable checkboxes
+                document.querySelectorAll('.variable-selector input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', (e) => this.updateFormula(parseInt(e.target.dataset.index)));
+                });
+            }
+
+            updateOperationType(index, type) {
+                const detailsDiv = document.querySelector(`.operation-details[data-index="${index}"]`);
+                const badge = detailsDiv.querySelector('.operation-badge');
+                const description = detailsDiv.querySelector('p');
+
+                if (type === 'Addition') {
+                    badge.innerHTML = '➕ Addition';
+                    badge.className = 'operation-badge';
+                    description.innerHTML = '<strong>Select 2 or more variables to add together</strong>';
+                } else {
+                    badge.innerHTML = '➖ Subtraction';
+                    badge.className = 'operation-badge subtraction';
+                    description.innerHTML = '<strong>Select exactly 2 variables (first - second, negatives become 0)</strong>';
+                }
+
+                // Clear previous selections if switching to subtraction
+                if (type === 'Subtraction') {
+                    const checkboxes = detailsDiv.querySelectorAll('input[type="checkbox"]');
+                    let checkedCount = 0;
+                    checkboxes.forEach(cb => {
+                        if (cb.checked) {
+                            checkedCount++;
+                            if (checkedCount > 2) {
+                                cb.checked = false;
+                            }
+                        }
+                    });
+                }
+
+                this.updateFormula(index);
+            }
+
+            updateFormula(index) {
+                const operationType = document.querySelector(`.operation-type[data-index="${index}"]`).value;
+                const varName = document.querySelector(`.variable-name[data-index="${index}"]`).value;
+                const selectedVars = Array.from(document.querySelectorAll(`.variable-selector[data-index="${index}"] input[type="checkbox"]:checked`))
+                    .map(cb => cb.value);
+
+                const formulaDisplay = document.querySelector(`.formula-display[data-index="${index}"]`);
+                const formulaText = formulaDisplay.querySelector('.formula-text');
+
+                if (selectedVars.length === 0) {
+                    formulaDisplay.style.display = 'none';
+                    return;
+                }
+
+                let formula = '';
+                let showFormula = false;
+
+                if (operationType === 'Addition' && selectedVars.length >= 2) {
+                    formula = selectedVars.join(' + ');
+                    showFormula = true;
+                } else if (operationType === 'Subtraction' && selectedVars.length === 2) {
+                    formula = `${selectedVars[0]} - ${selectedVars[1]} (negatives → 0)`;
+                    showFormula = true;
+                } else if (operationType === 'Subtraction' && selectedVars.length === 1) {
+                    // Show info message
+                }
+
+                if (showFormula && varName) {
+                    formulaText.textContent = `${varName} = ${formula}`;
+                    formulaDisplay.style.display = 'block';
+                } else {
+                    formulaDisplay.style.display = 'none';
+                }
+
+                // Handle subtraction checkbox limit
+                if (operationType === 'Subtraction') {
+                    const checkboxes = document.querySelectorAll(`.variable-selector[data-index="${index}"] input[type="checkbox"]`);
+                    checkboxes.forEach(cb => {
+                        if (!cb.checked && selectedVars.length >= 2) {
+                            cb.disabled = true;
+                        } else {
+                            cb.disabled = false;
+                        }
+                    });
+                }
+            }
+
+            createVariables() {
+                this.operations = this.collectOperations();
+                const errors = this.validateOperations();
+
+                if (errors.length > 0) {
+                    errors.forEach(error => this.showAlert(error, 'error'));
+                    return;
+                }
+
+                try {
+                    this.resultData = this.applyOperations();
+                    this.showResults();
+                    this.showAlert('New variables created successfully!', 'success');
+                } catch (error) {
+                    this.showAlert('Error creating variables: ' + error.message, 'error');
+                }
+            }
+
+            collectOperations() {
+                const operations = [];
+                const numOps = document.querySelectorAll('.operation-card').length;
+
+                for (let i = 0; i < numOps; i++) {
+                    const operationType = document.querySelector(`.operation-type[data-index="${i}"]`).value;
+                    const varName = document.querySelector(`.variable-name[data-index="${i}"]`).value.trim();
+                    const selectedVars = Array.from(document.querySelectorAll(`.variable-selector[data-index="${i}"] input[type="checkbox"]:checked`
