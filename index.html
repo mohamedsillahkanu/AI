@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">    
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1210,14 +1210,15 @@
             return data.map(row => {
                 const newRow = {};
                 
-                Object.entries(row).forEach(([key, value]) => {
-                    // Apply column rename
-                    const newKey = columnRenames[key] || key;
+                // Process all columns from the original data
+                Object.entries(row).forEach(([originalKey, value]) => {
+                    // Apply column rename (use new name if renamed, otherwise keep original)
+                    const newKey = columnRenames[originalKey] || originalKey;
                     
-                    // Apply value rename if applicable
+                    // Apply value rename if applicable for this specific column
                     let newValue = value;
-                    if (valueRenames[key] && valueRenames[key][value] !== undefined) {
-                        newValue = valueRenames[key][value];
+                    if (valueRenames[originalKey] && valueRenames[originalKey].hasOwnProperty(value)) {
+                        newValue = valueRenames[originalKey][value];
                     }
                     
                     newRow[newKey] = newValue;
