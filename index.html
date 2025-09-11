@@ -962,10 +962,9 @@
             // Show current settings
             const currentSettingsDiv = document.getElementById('currentSettings');
             currentSettingsDiv.innerHTML = `
-                <h4>🎨 Current Visualization Settings</h4>
+                <h4>Analysis Results</h4>
                 <p><strong>Title:</strong> ${settings.mainTitle}</p>
-                <p><strong>Legend:</strong> ${settings.legendTitle}</p>
-                <p><strong>Labels:</strong> ${settings.noReportLabel} vs ${settings.reportLabel}</p>
+                <p><strong>Data sorted by:</strong> Total reports per facility (descending)</p>
             `;
             
             // Generate heatmap
