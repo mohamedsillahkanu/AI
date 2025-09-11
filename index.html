@@ -849,4 +849,387 @@
                 for (let i = 0; i < numOps; i++) {
                     const operationType = document.querySelector(`.operation-type[data-index="${i}"]`).value;
                     const varName = document.querySelector(`.variable-name[data-index="${i}"]`).value.trim();
-                    const selectedVars = Array.from(document.querySelectorAll(`.variable-selector[data-index="${i}"] input[type="checkbox"]:checked`
+                    const selectedVars = Array.from(document.querySelectorAll(`.variable-selector[data-index="${i}"] input[type="checkbox"]:checked`))
+                        .map(cb => cb.value);
+
+                    if (varName && selectedVars.length > 0) {
+                        operations.push({
+                            operation: operationType,
+                            newName: varName,
+                            variables: selectedVars
+                        });
+                    }
+                }
+
+                return operations;
+            }
+
+            validateOperations() {
+                const errors = [];
+
+                if (this.operations.length === 0) {
+                    errors.push("No operations defined. Please add at least one operation.");
+                    return errors;
+                }
+
+                // Check for duplicate names
+                const names = this.operations.map(op => op.newName);
+                const duplicates = names.filter((name, index) => names.indexOf(name) !== index);
+                if (duplicates.length > 0) {
+                    errors.push("Duplicate new variable names found. Each new variable must have a unique name.");
+                }
+
+                // Check for conflicts with existing columns
+                const existingCols = Object.keys(this.data[0]);
+                for (const op of this.operations) {
+                    if (existingCols.includes(op.newName)) {
+                        errors.push(`Variable name '${op.newName}' already exists in the dataset.`);
+                    }
+                }
+
+                // Validate individual operations
+                this.operations.forEach((op, index) => {
+                    const opNum = index + 1;
+
+                    if (!op.newName.trim()) {
+                        errors.push(`Operation ${opNum}: New variable name is required.`);
+                    }
+
+                    if (op.operation === 'Addition' && op.variables.length < 2) {
+                        errors.push(`Operation ${opNum}: Addition requires at least 2 variables.`);
+                    }
+
+                    if (op.operation === 'Subtraction' && op.variables.length !== 2) {
+                        errors.push(`Operation ${opNum}: Subtraction requires exactly 2 variables.`);
+                    }
+                });
+
+                return errors;
+            }
+
+            applyOperations() {
+                const result = this.data.map(row => ({ ...row }));
+
+                this.operations.forEach(op => {
+                    result.forEach(row => {
+                        if (op.operation === 'Addition') {
+                            let sum = 0;
+                            let hasValidValue = false;
+                            
+                            for (const varName of op.variables) {
+                                const value = parseFloat(row[varName]);
+                                if (!isNaN(value) && isFinite(value)) {
+                                    sum += value;
+                                    hasValidValue = true;
+                                }
+                            }
+                            
+                            row[op.newName] = hasValidValue ? sum : null;
+                        } else if (op.operation === 'Subtraction') {
+                            const val1 = parseFloat(row[op.variables[0]]);
+                            const val2 = parseFloat(row[op.variables[1]]);
+                            
+                            if (!isNaN(val1) && !isNaN(val2) && isFinite(val1) && isFinite(val2)) {
+                                row[op.newName] = Math.max(0, val1 - val2);
+                            } else {
+                                row[op.newName] = null;
+                            }
+                        }
+                    });
+                });
+
+                return result;
+            }
+
+            showResults() {
+                // Show operations summary
+                const summaryHtml = this.operations.map(op => {
+                    const badgeClass = op.operation === 'Subtraction' ? 'subtraction' : '';
+                    let formula;
+                    
+                    if (op.operation === 'Addition') {
+                        formula = op.variables.join(' + ');
+                    } else {
+                        formula = `${op.variables[0]} - ${op.variables[1]} (negatives → 0)`;
+                    }
+
+                    return `
+                        <div class="result-summary">
+                            <span class="operation-badge ${badgeClass}">${op.operation}</span>
+                            <strong>${op.newName}</strong> = ${formula}
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById('operationsSummary').innerHTML = summaryHtml;
+
+                // Show data table
+                this.updateDataTable(false);
+
+                // Show statistics
+                this.updateStatistics();
+
+                // Show results section
+                document.getElementById('operationsSection').classList.add('hidden');
+                document.getElementById('resultsSection').classList.remove('hidden');
+            }
+
+            updateDataTable(showAll) {
+                const newColumns = this.operations.map(op => op.newName);
+                const columnsToShow = showAll ? Object.keys(this.resultData[0]) : newColumns;
+                
+                const tableHtml = this.createDataTable(this.resultData, columnsToShow);
+                document.getElementById('dataTableContainer').innerHTML = tableHtml;
+
+                const description = showAll ? 
+                    `Showing all ${Object.keys(this.resultData[0]).length} columns` :
+                    `Showing ${newColumns.length} new variables (check box above to see all columns)`;
+                
+                document.querySelector('#dataTableContainer').insertAdjacentHTML('beforebegin', 
+                    `<p><strong>${description}</strong></p>`);
+            }
+
+            createDataTable(data, columns) {
+                const headerRow = columns.map(col => `<th>${col}</th>`).join('');
+                const dataRows = data.slice(0, 100).map(row => { // Limit to first 100 rows for performance
+                    const cells = columns.map(col => {
+                        let value = row[col];
+                        if (typeof value === 'number') {
+                            value = value.toLocaleString(undefined, { maximumFractionDigits: 3 });
+                        }
+                        return `<td>${value ?? ''}</td>`;
+                    }).join('');
+                    return `<tr>${cells}</tr>`;
+                }).join('');
+
+                return `
+                    <table class="data-table">
+                        <thead><tr>${headerRow}</tr></thead>
+                        <tbody>${dataRows}</tbody>
+                    </table>
+                    ${data.length > 100 ? `<p style="padding: 1rem; text-align: center; color: #666;">Showing first 100 rows of ${data.length} total rows</p>` : ''}
+                `;
+            }
+
+            updateStatistics() {
+                const newColumns = this.operations.map(op => op.newName);
+                const stats = this.calculateStatistics(this.resultData, newColumns);
+                
+                const statsTable = this.createStatsTable(stats, newColumns);
+                document.getElementById('statsTableContainer').innerHTML = statsTable;
+            }
+
+            calculateStatistics(data, columns) {
+                const stats = {};
+                
+                columns.forEach(col => {
+                    const values = data.map(row => parseFloat(row[col])).filter(v => !isNaN(v) && isFinite(v));
+                    
+                    if (values.length > 0) {
+                        values.sort((a, b) => a - b);
+                        
+                        stats[col] = {
+                            count: values.length,
+                            mean: values.reduce((a, b) => a + b, 0) / values.length,
+                            std: this.calculateStandardDeviation(values),
+                            min: values[0],
+                            q25: this.calculatePercentile(values, 25),
+                            q50: this.calculatePercentile(values, 50),
+                            q75: this.calculatePercentile(values, 75),
+                            max: values[values.length - 1]
+                        };
+                    } else {
+                        stats[col] = {
+                            count: 0, mean: null, std: null, min: null, q25: null, q50: null, q75: null, max: null
+                        };
+                    }
+                });
+                
+                return stats;
+            }
+
+            calculateStandardDeviation(values) {
+                const mean = values.reduce((a, b) => a + b, 0) / values.length;
+                const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
+                const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
+                return Math.sqrt(avgSquaredDiff);
+            }
+
+            calculatePercentile(sortedValues, percentile) {
+                const index = (percentile / 100) * (sortedValues.length - 1);
+                const lower = Math.floor(index);
+                const upper = Math.ceil(index);
+                const weight = index % 1;
+                
+                if (upper >= sortedValues.length) return sortedValues[sortedValues.length - 1];
+                
+                return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
+            }
+
+            createStatsTable(stats, columns) {
+                const metrics = ['count', 'mean', 'std', 'min', 'q25', 'q50', 'q75', 'max'];
+                const metricLabels = {
+                    count: 'Count',
+                    mean: 'Mean',
+                    std: 'Std Dev',
+                    min: 'Min',
+                    q25: '25%',
+                    q50: '50%',
+                    q75: '75%',
+                    max: 'Max'
+                };
+
+                const headerRow = '<th>Statistic</th>' + columns.map(col => `<th>${col}</th>`).join('');
+                const dataRows = metrics.map(metric => {
+                    const cells = columns.map(col => {
+                        let value = stats[col][metric];
+                        if (typeof value === 'number') {
+                            value = value.toLocaleString(undefined, { maximumFractionDigits: 3 });
+                        }
+                        return `<td>${value ?? 'N/A'}</td>`;
+                    }).join('');
+                    return `<tr><td><strong>${metricLabels[metric]}</strong></td>${cells}</tr>`;
+                }).join('');
+
+                return `
+                    <table class="data-table">
+                        <thead><tr>${headerRow}</tr></thead>
+                        <tbody>${dataRows}</tbody>
+                    </table>
+                `;
+            }
+
+            downloadCsv() {
+                const csv = this.convertToCSV(this.resultData);
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dataset_with_new_variables_${this.getTimestamp()}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
+
+            downloadExcel() {
+                // Create workbook with data and operations log
+                const wb = XLSX.utils.book_new();
+                
+                // Add main data sheet
+                const ws1 = XLSX.utils.json_to_sheet(this.resultData);
+                XLSX.utils.book_append_sheet(wb, ws1, 'Data_with_New_Variables');
+                
+                // Add operations log sheet
+                const logData = this.operations.map(op => {
+                    let formula;
+                    if (op.operation === 'Addition') {
+                        formula = op.variables.join(' + ');
+                    } else {
+                        formula = `${op.variables[0]} - ${op.variables[1]} (negatives → 0)`;
+                    }
+                    
+                    return {
+                        'New_Variable': op.newName,
+                        'Operation': op.operation,
+                        'Source_Variables': op.variables.join(', '),
+                        'Formula': formula,
+                        'Created_Date': new Date().toLocaleString()
+                    };
+                });
+                
+                const ws2 = XLSX.utils.json_to_sheet(logData);
+                XLSX.utils.book_append_sheet(wb, ws2, 'Operations_Log');
+                
+                // Download
+                XLSX.writeFile(wb, `dataset_with_new_variables_${this.getTimestamp()}.xlsx`);
+            }
+
+            convertToCSV(data) {
+                if (data.length === 0) return '';
+                
+                const headers = Object.keys(data[0]);
+                const csvRows = [headers.join(',')];
+                
+                data.forEach(row => {
+                    const values = headers.map(header => {
+                        let value = row[header];
+                        if (value === null || value === undefined) {
+                            value = '';
+                        } else if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+                            value = `"${value.replace(/"/g, '""')}"`;
+                        }
+                        return value;
+                    });
+                    csvRows.push(values.join(','));
+                });
+                
+                return csvRows.join('\n');
+            }
+
+            getTimestamp() {
+                const now = new Date();
+                return now.getFullYear().toString() +
+                       (now.getMonth() + 1).toString().padStart(2, '0') +
+                       now.getDate().toString().padStart(2, '0') + '_' +
+                       now.getHours().toString().padStart(2, '0') +
+                       now.getMinutes().toString().padStart(2, '0');
+            }
+
+            reset() {
+                this.data = null;
+                this.numericColumns = [];
+                this.operations = [];
+                this.resultData = null;
+                
+                document.getElementById('uploadSection').classList.remove('hidden');
+                document.getElementById('mainContent').classList.add('hidden');
+                document.getElementById('resultsSection').classList.add('hidden');
+                document.getElementById('operationsSection').classList.remove('hidden');
+                
+                // Reset file input
+                document.getElementById('fileInput').value = '';
+                document.getElementById('uploadStatus').innerHTML = '';
+            }
+
+            resetOperations() {
+                this.operations = [];
+                this.resultData = null;
+                
+                document.getElementById('resultsSection').classList.add('hidden');
+                document.getElementById('operationsSection').classList.remove('hidden');
+                
+                // Reset form
+                document.getElementById('numOperations').value = 1;
+                this.generateOperationForms(1);
+            }
+
+            showAlert(message, type) {
+                const alertClass = type === 'success' ? 'alert-success' : 
+                                 type === 'error' ? 'alert-error' : 'alert-warning';
+                
+                const alertHtml = `<div class="alert ${alertClass}">${message}</div>`;
+                
+                // Remove existing alerts
+                document.querySelectorAll('.alert').forEach(alert => alert.remove());
+                
+                // Add new alert
+                const container = document.querySelector('.container');
+                container.insertAdjacentHTML('afterbegin', alertHtml);
+                
+                // Auto-remove after 5 seconds for success messages
+                if (type === 'success') {
+                    setTimeout(() => {
+                        document.querySelectorAll('.alert-success').forEach(alert => alert.remove());
+                    }, 5000);
+                }
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new VariableCalculator();
+        });
+    </script>
+</body>
+</html>
