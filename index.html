@@ -1,563 +1,1332 @@
-import streamlit as st
-import pandas as pd
-import io
-from datetime import datetime
-from typing import Dict, List
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Facility Reporting Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-# Set page config
-st.set_page_config(
-    page_title="Variable Rename Tool",
-    page_icon="✏️",
-    layout="wide"
-)
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
 
-# Custom CSS for better styling
-st.markdown("""
-<style>
-    .main-header {
-        text-align: center;
-        padding: 2rem 0;
-        background: linear-gradient(90deg, #9C27B0 0%, #673AB7 100%);
-        color: white;
-        margin: -1rem -1rem 2rem -1rem;
-        border-radius: 0 0 1rem 1rem;
-    }
-    
-    .column-rename-card {
-        background-color: white;
-        color: black;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-        border: 1px solid #ddd;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        height: 60px;
-        display: flex;
-        align-items: center;
-    }
-    
-    .column-rename-row {
-        display: flex;
-        align-items: center;
-        margin-bottom: 0.5rem;
-        gap: 1rem;
-    }
-    
-    .column-rename-left,
-    .column-rename-right {
-        flex: 1;
-    }
-    
-    .stTextInput > div > div > input {
-        background-color: white !important;
-        color: black !important;
-        border: 1px solid #ddd !important;
-        height: 60px !important;
-        padding: 1rem !important;
-        border-radius: 10px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-        margin: 0.5rem 0 !important;
-    }
-    
-    .stTextInput > div {
-        margin-bottom: 0 !important;
-    }
-    
-    .stTextInput {
-        margin-bottom: 0 !important;
-    }
-    
-    .column-type-badge {
-        display: inline-block;
-        background-color: #2196F3;
-        color: white;
-        padding: 0.25rem 0.5rem;
-        border-radius: 15px;
-        font-size: 0.75rem;
-        margin-left: 0.5rem;
-    }
-    
-    .column-type-badge.numeric {
-        background-color: #4CAF50;
-    }
-    
-    .column-type-badge.text {
-        background-color: #FF9800;
-    }
-    
-    .column-type-badge.datetime {
-        background-color: #E91E63;
-    }
-    
-    .success-message {
-        background-color: #d4edda;
-        color: #155724;
-        padding: 1rem;
-        border-radius: 10px;
-        border: 1px solid #c3e6cb;
-        margin: 1rem 0;
-    }
-    
-    .warning-message {
-        background-color: #fff3cd;
-        color: #856404;
-        padding: 1rem;
-        border-radius: 10px;
-        border: 1px solid #ffeaa7;
-        margin: 1rem 0;
-    }
-    
-    .upload-section {
-        background-color: #f8f9fa;
-        padding: 2rem;
-        border-radius: 10px;
-        border: 2px dashed #9C27B0;
-        text-align: center;
-        margin: 1rem 0;
-    }
-    
-    .stats-card {
-        background-color: #fff;
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        text-align: center;
-        border-top: 3px solid #9C27B0;
-    }
-    
-    .rename-summary {
-        background-color: #e8f5e8;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #4CAF50;
-        margin: 0.5rem 0;
-    }
-</style>
-""", unsafe_allow_html=True)
+        .main-header {
+            text-align: center;
+            padding: 3rem 0;
+            background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);
+            color: white;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
 
-# Header
-st.markdown("""
-<div class="main-header">
-    <h1>✏️ Variable Rename Tool</h1>
-    <p>Rename column variables in your dataset with ease</p>
-</div>
-""", unsafe_allow_html=True)
+        .main-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
 
-# Initialize session state
-if 'df' not in st.session_state:
-    st.session_state.df = None
-if 'original_df' not in st.session_state:
-    st.session_state.original_df = None
-if 'renamed_df' not in st.session_state:
-    st.session_state.renamed_df = None
-if 'rename_mapping' not in st.session_state:
-    st.session_state.rename_mapping = {}
-if 'columns_renamed' not in st.session_state:
-    st.session_state.columns_renamed = False
+        .main-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
 
-def read_file(uploaded_file):
-    """Read uploaded file and return DataFrame"""
-    try:
-        file_extension = uploaded_file.name.lower().split('.')[-1]
-        
-        if file_extension == 'csv':
-            df = pd.read_csv(uploaded_file)
-        elif file_extension in ['xls', 'xlsx']:
-            df = pd.read_excel(uploaded_file)
-        else:
-            raise ValueError(f"Unsupported file type: {file_extension}")
-        
-        return df
-    except Exception as e:
-        st.error(f"Error reading file {uploaded_file.name}: {str(e)}")
-        return None
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
 
-def get_column_type(dtype):
-    """Get user-friendly column type and corresponding CSS class"""
-    if pd.api.types.is_numeric_dtype(dtype):
-        return "Numeric", "numeric"
-    elif pd.api.types.is_datetime64_any_dtype(dtype):
-        return "DateTime", "datetime"
-    else:
-        return "Text", "text"
+        .upload-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+            border-left: 4px solid #4CAF50;
+        }
 
-def validate_new_names(new_names: Dict[str, str], original_columns: List[str]) -> tuple:
-    """Validate new column names and return validation results"""
-    errors = []
-    warnings = []
-    valid_mapping = {}
-    
-    # Get all new names (excluding empty ones)
-    proposed_names = {old: new.strip() for old, new in new_names.items() if new.strip()}
-    all_new_names = list(proposed_names.values())
-    
-    # Add unchanged column names to the mix for duplicate checking
-    unchanged_names = [col for col in original_columns if col not in proposed_names]
-    all_final_names = all_new_names + unchanged_names
-    
-    # Check for duplicates in new names
-    seen_names = set()
-    for old_name, new_name in proposed_names.items():
-        if new_name in seen_names:
-            errors.append(f"Duplicate new name '{new_name}' found")
-        elif new_name in unchanged_names:
-            errors.append(f"New name '{new_name}' conflicts with existing column")
-        else:
-            seen_names.add(new_name)
-            valid_mapping[old_name] = new_name
-    
-    # Check for invalid characters (optional - you can customize this)
-    invalid_chars = ['/', '\\', '?', '*', '[', ']', ':', '<', '>', '|']
-    for old_name, new_name in valid_mapping.items():
-        if any(char in new_name for char in invalid_chars):
-            warnings.append(f"Column '{new_name}' contains special characters that may cause issues")
-    
-    return valid_mapping, errors, warnings
+        .upload-section h3 {
+            color: #2E7D32;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
 
-# File upload section
-if st.session_state.df is None:
-    st.markdown("""
-    <div class="upload-section">
-        <h3>📁 Upload Your Data File</h3>
-        <p>Upload a CSV or Excel file to rename its column variables</p>
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 1rem 0;
+        }
+
+        .file-input {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            color: white;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .file-input:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.6);
+        }
+
+        .file-input input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-top: 4px solid #4CAF50;
+            transition: transform 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .metric-card h4 {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-card .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2E7D32;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-card p {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .customization-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+        }
+
+        .customization-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .color-section, .text-section {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .color-section h4, .text-section h4 {
+            color: #2E7D32;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="color"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="color"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        .color-preview {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1rem;
+            margin: 2rem 0;
+            align-items: center;
+        }
+
+        .color-preview-box {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: bold;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vs-divider {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px dashed #ccc;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+        }
+
+        .quick-themes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(46, 125, 50, 0.1) 100%);
+            border-left: 4px solid #4CAF50;
+            color: #2E7D32;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(211, 47, 47, 0.1) 100%);
+            border-left: 4px solid #f44336;
+            color: #d32f2f;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(21, 101, 192, 0.1) 100%);
+            border-left: 4px solid #2196F3;
+            color: #1565C0;
+        }
+
+        .results-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+        }
+
+        .heatmap-container {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .heatmap-canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .data-table-container {
+            max-height: 400px;
+            overflow: auto;
+            margin: 1rem 0;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 10px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+            color: #2E7D32;
+        }
+
+        .data-table tr:hover {
+            background: rgba(76, 175, 80, 0.05);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .expandable-section {
+            background: #f8f9fa;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .expandable-header {
+            padding: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: #2E7D32;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .expandable-header:hover {
+            background: rgba(76, 175, 80, 0.05);
+        }
+
+        .expandable-content {
+            padding: 0 1rem 1rem 1rem;
+            border-top: 1px solid #e1e5e9;
+        }
+
+        .feature-highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .feature-highlight h4 {
+            margin-bottom: 1rem;
+        }
+
+        .download-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-header h1 {
+                font-size: 2rem;
+            }
+            
+            .customization-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .color-preview {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .quick-themes {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <h1>📊 Health Facility Reporting Status Analysis</h1>
+        <p>Advanced heatmap visualization for health facility reporting patterns by region</p>
     </div>
-    """, unsafe_allow_html=True)
-    
-    uploaded_file = st.file_uploader(
-        "Choose a file",
-        type=['csv', 'xlsx', 'xls'],
-        help="Upload CSV or Excel files"
-    )
-    
-    if uploaded_file is not None:
-        df = read_file(uploaded_file)
-        if df is not None:
-            # Store in session state
-            st.session_state.df = df
-            st.session_state.original_df = df.copy()
-            
-            # Reset rename state when new file is uploaded
-            st.session_state.renamed_df = None
-            st.session_state.rename_mapping = {}
-            st.session_state.columns_renamed = False
-            
-            st.success(f"✅ File uploaded successfully!")
-            
-            # Show file info
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.info(f"📊 **File:** {uploaded_file.name}")
-            with col2:
-                st.info(f"📏 **Shape:** {df.shape[0]} rows × {df.shape[1]} columns")
-            with col3:
-                st.info(f"📋 **Columns:** {len(df.columns)} variables")
-            
-            st.rerun()
 
-# Main content when file is uploaded
-if st.session_state.df is not None:
-    df = st.session_state.df
-    
-    # Reset button
-    if st.button("🔄 Upload New File", type="secondary"):
-        # Reset everything
-        st.session_state.df = None
-        st.session_state.original_df = None
-        st.session_state.renamed_df = None
-        st.session_state.rename_mapping = {}
-        st.session_state.columns_renamed = False
-        st.rerun()
-    
-    # Show current file stats
-    st.subheader("📊 Current Dataset Overview")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.markdown(f"""
-        <div class="stats-card">
-            <h3>{df.shape[0]:,}</h3>
-            <p>Rows</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown(f"""
-        <div class="stats-card">
-            <h3>{df.shape[1]}</h3>
-            <p>Columns</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        numeric_cols = df.select_dtypes(include=['int64', 'float64']).shape[1]
-        st.markdown(f"""
-        <div class="stats-card">
-            <h3>{numeric_cols}</h3>
-            <p>Numeric</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col4:
-        text_cols = df.select_dtypes(include=['object']).shape[1]
-        st.markdown(f"""
-        <div class="stats-card">
-            <h3>{text_cols}</h3>
-            <p>Text</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Column renaming section
-    if not st.session_state.columns_renamed:
-        st.subheader("✏️ Rename Column Variables")
-        st.markdown("Enter new names for the columns you want to rename. Leave blank to keep the original name.")
-        
-        # Create rename interface
-        new_names = {}
-        
-        # Display columns in pairs (old name | new name input)
-        for i, column in enumerate(df.columns):
-            col_type, css_class = get_column_type(df[column].dtype)
+    <div class="container">
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <h3>📁 Data Upload</h3>
+            <p>Upload your health facility data file (CSV, Excel). Required columns: hf_uid, allout, susp, test, conf, maltreat, Date (or month/year)</p>
             
-            # Create two columns for each variable
-            col_left, col_right = st.columns([1, 1])
-            
-            with col_left:
-                st.markdown(f"""
-                <div class="column-rename-card">
-                    <strong>{column}</strong>
-                    <span class="column-type-badge {css_class}">{col_type}</span>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            with col_right:
-                new_name = st.text_input(
-                    "New name",
-                    key=f"rename_{i}",
-                    placeholder=f"Enter new name for '{column}'",
-                    label_visibility="collapsed"
-                )
-                new_names[column] = new_name
-        
-        # Rename button and validation
-        st.markdown("---")
-        
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            if st.button("✏️ Rename Variables", type="primary"):
-                # Validate new names
-                valid_mapping, errors, warnings = validate_new_names(new_names, df.columns.tolist())
-                
-                if errors:
-                    for error in errors:
-                        st.error(f"❌ {error}")
-                else:
-                    if not valid_mapping:
-                        st.warning("⚠️ No column names to change. Please enter at least one new name.")
-                    else:
-                        # Show warnings if any
-                        for warning in warnings:
-                            st.warning(f"⚠️ {warning}")
-                        
-                        # Apply renaming
-                        try:
-                            renamed_df = df.rename(columns=valid_mapping)
-                            
-                            # Store results
-                            st.session_state.renamed_df = renamed_df
-                            st.session_state.rename_mapping = valid_mapping
-                            st.session_state.columns_renamed = True
-                            
-                            st.success("✅ Variables renamed successfully!")
-                            st.rerun()
-                            
-                        except Exception as e:
-                            st.error(f"❌ Error renaming variables: {str(e)}")
-        
-        with col2:
-            # Show preview of changes
-            if any(name.strip() for name in new_names.values()):
-                valid_mapping, errors, warnings = validate_new_names(new_names, df.columns.tolist())
-                if valid_mapping and not errors:
-                    st.markdown("**Preview of changes:**")
-                    for old_name, new_name in valid_mapping.items():
-                        st.markdown(f"• `{old_name}` → `{new_name}`")
-
-# Show results if variables have been renamed
-if st.session_state.columns_renamed and st.session_state.renamed_df is not None:
-    st.subheader("📊 Rename Results")
-    
-    # Show rename summary
-    st.markdown("### 📋 Rename Summary")
-    
-    if st.session_state.rename_mapping:
-        for old_name, new_name in st.session_state.rename_mapping.items():
-            st.markdown(f"""
-            <div class="rename-summary">
-                <strong>Renamed:</strong> <code>{old_name}</code> → <code>{new_name}</code>
+            <div class="file-input-wrapper">
+                <label class="file-input">
+                    Choose File
+                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+                </label>
             </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown(f"**Total columns renamed:** {len(st.session_state.rename_mapping)}")
-        st.markdown(f"**Unchanged columns:** {len(st.session_state.df.columns) - len(st.session_state.rename_mapping)}")
-    
-    # Display renamed dataframe
-    st.markdown("### 📈 Dataset with Renamed Variables")
-    st.dataframe(st.session_state.renamed_df, use_container_width=True, height=400)
-    
-    # Show column comparison
-    st.markdown("### 🔄 Before & After Column Names")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("**Original Columns:**")
-        for col in st.session_state.df.columns:
-            status = "→ Renamed" if col in st.session_state.rename_mapping else "✓ Unchanged"
-            st.markdown(f"• `{col}` {status}")
-    
-    with col2:
-        st.markdown("**New Columns:**")
-        for col in st.session_state.renamed_df.columns:
-            # Find if this was renamed
-            original_name = None
-            for old, new in st.session_state.rename_mapping.items():
-                if new == col:
-                    original_name = old
-                    break
             
-            if original_name:
-                st.markdown(f"• `{col}` ← Renamed from `{original_name}`")
-            else:
-                st.markdown(f"• `{col}` ✓ Unchanged")
-    
-    # Summary statistics
-    st.markdown("### 📊 Dataset Statistics")
-    numeric_data = st.session_state.renamed_df.select_dtypes(include=['int64', 'float64'])
-    if not numeric_data.empty:
-        st.dataframe(numeric_data.describe(), use_container_width=True)
-    else:
-        st.info("No numeric columns found for statistical summary.")
-    
-    # Download section
-    st.markdown("### 💾 Download Renamed Dataset")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # CSV download
-        csv_buffer = io.StringIO()
-        st.session_state.renamed_df.to_csv(csv_buffer, index=False)
-        csv_data = csv_buffer.getvalue()
-        
-        st.download_button(
-            label="📥 Download as CSV",
-            data=csv_data,
-            file_name=f"renamed_variables_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-            mime="text/csv",
-            help="Download dataset with renamed variables as CSV"
-        )
-    
-    with col2:
-        # Excel download with rename log
-        excel_buffer = io.BytesIO()
-        with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-            # Main data with renamed columns
-            st.session_state.renamed_df.to_excel(writer, sheet_name='Renamed_Data', index=False)
+            <div id="uploadProgress" class="hidden">
+                <div class="loading-spinner"></div>
+                <p>Processing your file...</p>
+            </div>
+        </div>
+
+        <!-- Alerts Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Data Summary -->
+        <div id="dataSummary" class="hidden">
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <h4>Health Facilities</h4>
+                    <div class="metric-value" id="totalHFs">0</div>
+                    <p>Unique facilities</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Time Periods</h4>
+                    <div class="metric-value" id="totalMonths">0</div>
+                    <p>Unique months</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Total Records</h4>
+                    <div class="metric-value" id="totalRecords">0</div>
+                    <p>Data points</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Reporting Rate</h4>
+                    <div class="metric-value" id="reportingRate">0%</div>
+                    <p>Overall rate</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data View -->
+        <div id="dataView" class="expandable-section hidden">
+            <div class="expandable-header" onclick="toggleExpander('dataContent')">
+                🔍 View Data Structure
+                <span>▼</span>
+            </div>
+            <div id="dataContent" class="expandable-content hidden">
+                <h4>Original Columns:</h4>
+                <div id="originalColumns"></div>
+                <h4>Sample Records (First 10 rows):</h4>
+                <div class="data-table-container">
+                    <table class="data-table" id="sampleDataTable"></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customization Section -->
+        <div id="customizationSection" class="customization-section hidden">
+            <h3>🎯 Visualization Settings</h3>
             
-            # Rename log sheet
-            if st.session_state.rename_mapping:
-                log_data = []
-                for old_name, new_name in st.session_state.rename_mapping.items():
-                    log_data.append({
-                        'Original_Name': old_name,
-                        'New_Name': new_name,
-                        'Data_Type': str(st.session_state.df[old_name].dtype),
-                        'Rename_Date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    })
+            <div class="customization-grid">
+                <div class="color-section">
+                    <h4>🎨 Color Customization</h4>
+                    <div class="form-group">
+                        <label for="noReportColor">No Report Color:</label>
+                        <input type="color" id="noReportColor" value="#FFC0CB">
+                    </div>
+                    <div class="form-group">
+                        <label for="reportColor">Report Color:</label>
+                        <input type="color" id="reportColor" value="#ADD8E6">
+                    </div>
+                </div>
                 
-                log_df = pd.DataFrame(log_data)
-                log_df.to_excel(writer, sheet_name='Rename_Log', index=False)
-        
-        excel_data = excel_buffer.getvalue()
-        
-        st.download_button(
-            label="📥 Download as Excel",
-            data=excel_data,
-            file_name=f"renamed_variables_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            help="Download dataset with rename log as Excel"
-        )
-    
-    # Button to rename different variables
-    if st.button("✏️ Rename Different Variables", type="secondary"):
-        st.session_state.columns_renamed = False
-        st.session_state.renamed_df = None
-        st.session_state.rename_mapping = {}
-        st.rerun()
+                <div class="text-section">
+                    <h4>📝 Text Customization</h4>
+                    <div class="form-group">
+                        <label for="mainTitle">Main Title:</label>
+                        <input type="text" id="mainTitle" value="Health Facility Reporting Status by ADM1">
+                    </div>
+                    <div class="form-group">
+                        <label for="legendTitle">Legend Title:</label>
+                        <input type="text" id="legendTitle" value="Reporting status">
+                    </div>
+                    <div class="form-group">
+                        <label for="noReportLabel">No Report Label:</label>
+                        <input type="text" id="noReportLabel" value="Do not report">
+                    </div>
+                    <div class="form-group">
+                        <label for="reportLabel">Report Label:</label>
+                        <input type="text" id="reportLabel" value="Report">
+                    </div>
+                </div>
+            </div>
 
-# Show features when no file is uploaded
-if st.session_state.df is None:
-    
-    # How it works section
-    st.subheader("ℹ️ How It Works")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        **Renaming Process:**
-        
-        1. **Upload File**: CSV or Excel file with your data
-        
-        2. **View Columns**: See all column names with their data types
-        
-        3. **Enter New Names**: Type new names for columns you want to rename
-        
-        4. **Validate**: Automatic checking for duplicates and conflicts
-        
-        5. **Apply Changes**: Generate dataset with new column names
-        """)
-    
-    with col2:
-        st.markdown("""
-        **Features:**
-        - 📊 Visual column type indicators
-        - ✅ Duplicate name validation
-        - 🔄 Before/after comparison
-        - 📋 Detailed rename log
-        - 💾 Excel and CSV downloads
-        
-        **Supported Formats:**
-        - 📄 CSV files
-        - 📊 Excel files (.xlsx, .xls)
-        """)
-    
-    st.subheader("✨ Tool Features")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        **📋 Smart Interface:**
-        - Side-by-side old/new name display
-        - Color-coded data type indicators
-        - Real-time validation
-        - Preview of changes before applying
-        """)
-    
-    with col2:
-        st.markdown("""
-        **🔒 Data Safety:**
-        - Original data preserved
-        - Comprehensive validation
-        - Detailed change tracking
-        - Easy rollback option
-        """)
+            <!-- Color Preview -->
+            <h4>🎨 Color Preview</h4>
+            <div class="color-preview">
+                <div id="noReportPreview" class="color-preview-box"></div>
+                <div class="vs-divider">VS</div>
+                <div id="reportPreview" class="color-preview-box"></div>
+            </div>
 
-# Footer
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #666; padding: 1rem;">
-    <p>✏️ Built with Streamlit | Variable Rename Tool v1.0</p>
-</div>
-""", unsafe_allow_html=True)
+            <!-- Generate Button -->
+            <div style="text-align: center; margin: 2rem 0;">
+                <button class="btn btn-primary" onclick="generateAnalysis()">🚀 Generate Customized Analysis</button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="results-section hidden">
+            <h3>📈 Your Customized Analysis Results</h3>
+            
+            <!-- Current Settings -->
+            <div id="currentSettings" class="feature-highlight"></div>
+            
+            <!-- Heatmap -->
+            <div class="heatmap-container">
+                <h4>🗺️ Reporting Status Heatmap</h4>
+                <canvas id="heatmapCanvas" class="heatmap-canvas"></canvas>
+            </div>
+            
+            <!-- Quick Theme Changes -->
+            <h4>🔄 Quick Style Changes</h4>
+            <div class="quick-themes">
+                <button class="btn btn-secondary" onclick="applyQuickTheme('classic')">🌸 Classic Pink/Blue</button>
+                <button class="btn btn-secondary" onclick="applyQuickTheme('heat')">🔥 Heat Colors</button>
+                <button class="btn btn-secondary" onclick="applyQuickTheme('ocean')">🌊 Ocean Theme</button>
+                <button class="btn btn-secondary" onclick="applyQuickTheme('autumn')">🍂 Autumn Theme</button>
+            </div>
+            
+            <!-- Celebration Button -->
+            <div style="text-align: center; margin: 2rem 0;">
+                <button class="btn btn-secondary" onclick="celebrate()">🎉 Celebrate Results!</button>
+            </div>
+            
+            <!-- Download Section -->
+            <h4>💾 Download Results</h4>
+            <div class="download-section">
+                <button class="btn btn-primary" onclick="downloadFullDataset()">📥 Download Full Dataset (CSV)</button>
+                <button class="btn btn-primary" onclick="downloadHeatmap()">📥 Download Heatmap (PNG)</button>
+                <button class="btn btn-primary" onclick="downloadAnalysisReport()">📥 Download Analysis Report</button>
+            </div>
+        </div>
+
+        <!-- Regional Statistics -->
+        <div id="regionalStats" class="expandable-section hidden">
+            <div class="expandable-header" onclick="toggleExpander('regionalStatsContent')">
+                📊 Regional Statistics
+                <span>▼</span>
+            </div>
+            <div id="regionalStatsContent" class="expandable-content hidden">
+                <div class="data-table-container">
+                    <table class="data-table" id="regionalStatsTable"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; color: #666; padding: 2rem; margin-top: 3rem; border-top: 1px solid #e1e5e9;">
+        <p>📊 Health Facility Reporting Status Analysis Tool | Built with HTML, CSS & JavaScript</p>
+    </div>
+
+    <script>
+        let currentData = null;
+        let processedData = null;
+        let analysisResults = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+            
+            // Add event listeners for color preview
+            document.getElementById('noReportColor').addEventListener('change', updateColorPreview);
+            document.getElementById('reportColor').addEventListener('change', updateColorPreview);
+            document.getElementById('noReportLabel').addEventListener('input', updateColorPreview);
+            document.getElementById('reportLabel').addEventListener('input', updateColorPreview);
+            
+            // Initial color preview
+            updateColorPreview();
+        });
+
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+
+            // Show progress
+            document.getElementById('uploadProgress').classList.remove('hidden');
+
+            if (fileExtension === 'csv') {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        processData(results.data, fileName);
+                    },
+                    error: function(error) {
+                        showAlert('Error reading CSV file: ' + error.message, 'error');
+                        document.getElementById('uploadProgress').classList.add('hidden');
+                    }
+                });
+            } else if (['xlsx', 'xls'].includes(fileExtension)) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        processData(jsonData, fileName);
+                    } catch (error) {
+                        showAlert('Error reading Excel file: ' + error.message, 'error');
+                        document.getElementById('uploadProgress').classList.add('hidden');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                showAlert('Unsupported file type. Please upload CSV or Excel files.', 'error');
+                document.getElementById('uploadProgress').classList.add('hidden');
+                return;
+            }
+        }
+
+        function processData(data, fileName) {
+            document.getElementById('uploadProgress').classList.add('hidden');
+            
+            if (!data || data.length === 0) {
+                showAlert('The file appears to be empty or invalid.', 'error');
+                return;
+            }
+
+            currentData = data;
+            
+            if (!validateData(data)) {
+                return;
+            }
+
+            showAlert('✅ File uploaded successfully!', 'success');
+            
+            // Update UI
+            updateDataSummary();
+            showDataStructure();
+            
+            // Show sections
+            document.getElementById('dataSummary').classList.remove('hidden');
+            document.getElementById('dataView').classList.remove('hidden');
+            document.getElementById('customizationSection').classList.remove('hidden');
+        }
+
+        function validateData(data) {
+            const requiredCols = ['hf_uid', 'allout', 'susp', 'test', 'conf', 'maltreat'];
+            const availableCols = Object.keys(data[0] || {});
+            const missingCols = requiredCols.filter(col => !availableCols.includes(col));
+            
+            if (missingCols.length > 0) {
+                showAlert(`Missing required columns: ${missingCols.join(', ')}`, 'error');
+                return false;
+            }
+            
+            // Create Date column if needed
+            if (!availableCols.includes('Date')) {
+                if (availableCols.includes('month') && availableCols.includes('year')) {
+                    try {
+                        showAlert('🔄 Creating Date column from month and year...', 'info');
+                        data.forEach(row => {
+                            const month = parseInt(row.month);
+                            const year = parseInt(row.year);
+                            if (month >= 1 && month <= 12 && year > 1900) {
+                                row.Date = `${year}-${month.toString().padStart(2, '0')}`;
+                            } else {
+                                throw new Error('Invalid month or year values');
+                            }
+                        });
+                        showAlert('✅ Successfully created Date column', 'success');
+                    } catch (error) {
+                        showAlert('❌ Error creating Date column: ' + error.message, 'error');
+                        return false;
+                    }
+                } else if (availableCols.includes('year_mon')) {
+                    try {
+                        showAlert('🔄 Using year_mon as Date column...', 'info');
+                        data.forEach(row => {
+                            row.Date = row.year_mon.toString();
+                        });
+                        showAlert('✅ Successfully used year_mon as Date column', 'success');
+                    } catch (error) {
+                        showAlert('❌ Error using year_mon as Date: ' + error.message, 'error');
+                        return false;
+                    }
+                } else {
+                    showAlert('❌ No Date, month/year, or year_mon columns found', 'error');
+                    return false;
+                }
+            }
+            
+            // Create ADM1 regions if needed
+            if (!availableCols.includes('adm1')) {
+                showAlert('🔄 Creating artificial ADM1 regions...', 'info');
+                const uniqueHFs = [...new Set(data.map(row => row.hf_uid))];
+                const nGroups = Math.min(16, Math.max(4, Math.floor(uniqueHFs.length / 10)));
+                const groupSize = Math.ceil(uniqueHFs.length / nGroups);
+                
+                const adm1Mapping = {};
+                uniqueHFs.sort().forEach((hf, index) => {
+                    const groupNum = Math.floor(index / groupSize);
+                    adm1Mapping[hf] = `Region_${(groupNum + 1).toString().padStart(2, '0')}`;
+                });
+                
+                data.forEach(row => {
+                    row.adm1 = adm1Mapping[row.hf_uid];
+                });
+                
+                showAlert(`✅ Created ${nGroups} artificial ADM1 regions`, 'success');
+            }
+            
+            // Convert numeric columns
+            const numericCols = ['allout', 'susp', 'test', 'conf', 'maltreat'];
+            numericCols.forEach(col => {
+                data.forEach(row => {
+                    row[col] = isNaN(Number(row[col])) ? 0 : Number(row[col]);
+                });
+            });
+            
+            processedData = data;
+            return true;
+        }
+
+        function updateDataSummary() {
+            if (!processedData) return;
+            
+            const selectedVariables = ['allout', 'susp', 'test', 'conf', 'maltreat'];
+            const dataWithStatus = processedData.map(row => {
+                const totalCases = selectedVariables.reduce((sum, col) => sum + (row[col] || 0), 0);
+                return {
+                    ...row,
+                    has_reporting: totalCases > 0 ? 1 : 0
+                };
+            });
+            
+            const totalHFs = new Set(processedData.map(row => row.hf_uid)).size;
+            const totalMonths = new Set(processedData.map(row => row.Date)).size;
+            const totalRecords = processedData.length;
+            const reportingRate = ((dataWithStatus.reduce((sum, row) => sum + row.has_reporting, 0) / totalRecords) * 100).toFixed(2);
+            
+            document.getElementById('totalHFs').textContent = totalHFs.toLocaleString();
+            document.getElementById('totalMonths').textContent = totalMonths.toLocaleString();
+            document.getElementById('totalRecords').textContent = totalRecords.toLocaleString();
+            document.getElementById('reportingRate').textContent = `${reportingRate}%`;
+        }
+
+        function showDataStructure() {
+            if (!processedData) return;
+            
+            const originalColumns = Object.keys(processedData[0]);
+            document.getElementById('originalColumns').innerHTML = originalColumns.map(col => 
+                `<span style="background: #e3f2fd; padding: 0.25rem 0.5rem; border-radius: 4px; margin: 0.25rem; display: inline-block;">${col}</span>`
+            ).join('');
+            
+            // Show sample data
+            const sampleTable = document.getElementById('sampleDataTable');
+            sampleTable.innerHTML = '';
+            
+            if (processedData.length > 0) {
+                // Create header
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                const displayCols = ['hf_uid', 'adm1', 'Date', 'allout', 'susp', 'test', 'conf', 'maltreat'];
+                const availableCols = displayCols.filter(col => originalColumns.includes(col));
+                
+                availableCols.forEach(col => {
+                    const th = document.createElement('th');
+                    th.textContent = col;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                sampleTable.appendChild(thead);
+                
+                // Create body
+                const tbody = document.createElement('tbody');
+                processedData.slice(0, 10).forEach(row => {
+                    const tr = document.createElement('tr');
+                    availableCols.forEach(col => {
+                        const td = document.createElement('td');
+                        td.textContent = row[col] || '';
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+                sampleTable.appendChild(tbody);
+            }
+        }
+
+        function updateColorPreview() {
+            const noReportColor = document.getElementById('noReportColor').value;
+            const reportColor = document.getElementById('reportColor').value;
+            const noReportLabel = document.getElementById('noReportLabel').value;
+            const reportLabel = document.getElementById('reportLabel').value;
+            
+            const noReportPreview = document.getElementById('noReportPreview');
+            const reportPreview = document.getElementById('reportPreview');
+            
+            noReportPreview.style.backgroundColor = noReportColor;
+            noReportPreview.style.color = getContrastColor(noReportColor);
+            noReportPreview.textContent = noReportLabel;
+            
+            reportPreview.style.backgroundColor = reportColor;
+            reportPreview.style.color = getContrastColor(reportColor);
+            reportPreview.textContent = reportLabel;
+        }
+
+        function getContrastColor(hexColor) {
+            // Convert hex to RGB
+            const r = parseInt(hexColor.slice(1, 3), 16);
+            const g = parseInt(hexColor.slice(3, 5), 16);
+            const b = parseInt(hexColor.slice(5, 7), 16);
+            
+            // Calculate luminance
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            
+            // Return black or white based on luminance
+            return luminance > 0.5 ? '#000000' : '#ffffff';
+        }
+
+        function generateAnalysis() {
+            if (!processedData) {
+                showAlert('Please upload data first', 'error');
+                return;
+            }
+            
+            showAlert('🔄 Generating customized analysis...', 'info');
+            
+            try {
+                // Get settings
+                const settings = {
+                    noReportColor: document.getElementById('noReportColor').value,
+                    reportColor: document.getElementById('reportColor').value,
+                    mainTitle: document.getElementById('mainTitle').value,
+                    legendTitle: document.getElementById('legendTitle').value,
+                    noReportLabel: document.getElementById('noReportLabel').value,
+                    reportLabel: document.getElementById('reportLabel').value
+                };
+                
+                // Process data for analysis
+                analysisResults = createAnalysisResults(processedData, settings);
+                
+                // Show results
+                showResults(settings);
+                
+                showAlert('✅ Customized analysis completed!', 'success');
+                
+            } catch (error) {
+                showAlert('❌ Error generating analysis: ' + error.message, 'error');
+            }
+        }
+
+        function createAnalysisResults(data, settings) {
+            const selectedVariables = ['allout', 'susp', 'test', 'conf', 'maltreat'];
+            
+            // Add status to each row
+            const dataWithStatus = data.map(row => {
+                const totalCases = selectedVariables.reduce((sum, col) => sum + (row[col] || 0), 0);
+                return {
+                    ...row,
+                    status: totalCases > 0 ? 1 : 0
+                };
+            });
+            
+            // Group by ADM1
+            const adm1Groups = {};
+            dataWithStatus.forEach(row => {
+                const adm1 = row.adm1;
+                if (!adm1Groups[adm1]) {
+                    adm1Groups[adm1] = [];
+                }
+                adm1Groups[adm1].push(row);
+            });
+            
+            // Create regional statistics
+            const regionalStats = {};
+            Object.keys(adm1Groups).forEach(adm1 => {
+                const groupData = adm1Groups[adm1];
+                const uniqueHFs = new Set(groupData.map(row => row.hf_uid)).size;
+                const monthsReported = groupData.filter(row => row.status === 1).length;
+                const totalMonths = groupData.length;
+                const totalCases = groupData.reduce((sum, row) => sum + selectedVariables.reduce((colSum, col) => colSum + (row[col] || 0), 0), 0);
+                const reportingRate = totalMonths > 0 ? ((monthsReported / totalMonths) * 100).toFixed(2) : 0;
+                
+                regionalStats[adm1] = {
+                    healthFacilities: uniqueHFs,
+                    monthsReported: monthsReported,
+                    totalMonths: totalMonths,
+                    totalCases: totalCases,
+                    reportingRate: reportingRate
+                };
+            });
+            
+            return {
+                dataWithStatus: dataWithStatus,
+                adm1Groups: adm1Groups,
+                regionalStats: regionalStats,
+                settings: settings
+            };
+        }
+
+        function showResults(settings) {
+            // Show current settings
+            const currentSettingsDiv = document.getElementById('currentSettings');
+            currentSettingsDiv.innerHTML = `
+                <h4>🎨 Current Visualization Settings</h4>
+                <p><strong>Title:</strong> ${settings.mainTitle}</p>
+                <p><strong>Legend:</strong> ${settings.legendTitle}</p>
+                <p><strong>Labels:</strong> ${settings.noReportLabel} vs ${settings.reportLabel}</p>
+            `;
+            
+            // Generate heatmap
+            generateHeatmap(analysisResults, settings);
+            
+            // Show regional statistics
+            showRegionalStatistics();
+            
+            // Show results section
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('regionalStats').classList.remove('hidden');
+        }
+
+        function generateHeatmap(results, settings) {
+            const canvas = document.getElementById('heatmapCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = 1200;
+            canvas.height = 800;
+            
+            // Clear canvas
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw title
+            ctx.fillStyle = '#333333';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(settings.mainTitle, canvas.width / 2, 40);
+            
+            // Get ADM1 groups
+            const adm1Groups = Object.keys(results.adm1Groups);
+            const gridCols = 4;
+            const gridRows = Math.ceil(adm1Groups.length / gridCols);
+            
+            const cellWidth = (canvas.width - 100) / gridCols;
+            const cellHeight = (canvas.height - 150) / gridRows;
+            
+            // Draw each ADM1 heatmap
+            adm1Groups.forEach((adm1, index) => {
+                const row = Math.floor(index / gridCols);
+                const col = index % gridCols;
+                
+                const x = 50 + col * cellWidth;
+                const y = 80 + row * cellHeight;
+                
+                drawADM1Heatmap(ctx, results.adm1Groups[adm1], adm1, x, y, cellWidth - 20, cellHeight - 20, settings);
+            });
+            
+            // Draw legend
+            drawLegend(ctx, settings, canvas.width - 250, 80);
+        }
+
+        function drawADM1Heatmap(ctx, data, adm1Name, x, y, width, height, settings) {
+            // Group by HF and Date
+            const hfData = {};
+            data.forEach(row => {
+                if (!hfData[row.hf_uid]) {
+                    hfData[row.hf_uid] = {};
+                }
+                hfData[row.hf_uid][row.Date] = row.status;
+            });
+            
+            const hfIds = Object.keys(hfData);
+            const dates = [...new Set(data.map(row => row.Date))].sort();
+            
+            if (hfIds.length === 0 || dates.length === 0) return;
+            
+            // Draw title
+            ctx.fillStyle = '#333333';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(adm1Name, x + width / 2, y - 5);
+            
+            // Calculate cell dimensions
+            const cellWidth = Math.max(2, width / dates.length);
+            const cellHeight = Math.max(2, (height - 20) / hfIds.length);
+            
+            // Draw heatmap
+            hfIds.forEach((hfId, hfIndex) => {
+                dates.forEach((date, dateIndex) => {
+                    const status = hfData[hfId][date] || 0;
+                    const cellX = x + dateIndex * cellWidth;
+                    const cellY = y + 20 + hfIndex * cellHeight;
+                    
+                    ctx.fillStyle = status === 1 ? settings.reportColor : settings.noReportColor;
+                    ctx.fillRect(cellX, cellY, cellWidth - 1, cellHeight - 1);
+                });
+            });
+            
+            // Draw border
+            ctx.strokeStyle = '#cccccc';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y + 20, width, height - 20);
+        }
+
+        function drawLegend(ctx, settings, x, y) {
+            const legendWidth = 180;
+            const legendHeight = 80;
+            
+            // Draw legend background
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(x, y, legendWidth, legendHeight);
+            ctx.strokeStyle = '#cccccc';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, legendWidth, legendHeight);
+            
+            // Draw legend title
+            ctx.fillStyle = '#333333';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(settings.legendTitle, x + legendWidth / 2, y + 20);
+            
+            // Draw legend items
+            const itemY = y + 35;
+            
+            // No report
+            ctx.fillStyle = settings.noReportColor;
+            ctx.fillRect(x + 10, itemY, 20, 15);
+            ctx.fillStyle = '#333333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(settings.noReportLabel, x + 35, itemY + 12);
+            
+            // Report
+            ctx.fillStyle = settings.reportColor;
+            ctx.fillRect(x + 10, itemY + 25, 20, 15);
+            ctx.fillStyle = '#333333';
+            ctx.fillText(settings.reportLabel, x + 35, itemY + 37);
+        }
+
+        function showRegionalStatistics() {
+            const table = document.getElementById('regionalStatsTable');
+            table.innerHTML = '';
+            
+            if (!analysisResults) return;
+            
+            // Create header
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            const headers = ['Region', 'Health Facilities', 'Months Reported', 'Total Months', 'Total Cases', 'Reporting Rate (%)'];
+            
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            // Create body
+            const tbody = document.createElement('tbody');
+            Object.entries(analysisResults.regionalStats).forEach(([region, stats]) => {
+                const tr = document.createElement('tr');
+                
+                const values = [
+                    region,
+                    stats.healthFacilities,
+                    stats.monthsReported,
+                    stats.totalMonths,
+                    stats.totalCases.toLocaleString(),
+                    stats.reportingRate + '%'
+                ];
+                
+                values.forEach(value => {
+                    const td = document.createElement('td');
+                    td.textContent = value;
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+        }
+
+        function applyQuickTheme(theme) {
+            const themes = {
+                classic: {
+                    noReportColor: '#FFC0CB',
+                    reportColor: '#ADD8E6',
+                    mainTitle: 'Health Facility Reporting Status by ADM1',
+                    legendTitle: 'Reporting status',
+                    noReportLabel: 'Do not report',
+                    reportLabel: 'Report'
+                },
+                heat: {
+                    noReportColor: '#FF6B6B',
+                    reportColor: '#4ECDC4',
+                    mainTitle: 'Facility Reporting Heat Map',
+                    legendTitle: 'Reporting Status',
+                    noReportLabel: 'Do not report',
+                    reportLabel: 'Report'
+                },
+                ocean: {
+                    noReportColor: '#E8F4FD',
+                    reportColor: '#1E3A8A',
+                    mainTitle: 'Reporting Ocean: Facility Status Depths',
+                    legendTitle: 'Reporting Status',
+                    noReportLabel: 'Do not report',
+                    reportLabel: 'Report'
+                },
+                autumn: {
+                    noReportColor: '#FFF8DC',
+                    reportColor: '#D2691E',
+                    mainTitle: 'Autumn Reporting Landscape',
+                    legendTitle: 'Reporting Status',
+                    noReportLabel: 'Do not report',
+                    reportLabel: 'Report'
+                }
+            };
+            
+            const settings = themes[theme];
+            if (!settings) return;
+            
+            // Update form inputs
+            document.getElementById('noReportColor').value = settings.noReportColor;
+            document.getElementById('reportColor').value = settings.reportColor;
+            document.getElementById('mainTitle').value = settings.mainTitle;
+            document.getElementById('legendTitle').value = settings.legendTitle;
+            document.getElementById('noReportLabel').value = settings.noReportLabel;
+            document.getElementById('reportLabel').value = settings.reportLabel;
+            
+            // Update preview
+            updateColorPreview();
+            
+            // Regenerate analysis
+            if (analysisResults) {
+                showAlert('🔄 Applying new theme...', 'info');
+                analysisResults.settings = settings;
+                showResults(settings);
+                showAlert('✅ Theme applied successfully!', 'success');
+            }
+        }
+
+        function celebrate() {
+            // Simple celebration animation
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+            const container = document.body;
+            
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.style.position = 'fixed';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.top = '-10px';
+                    confetti.style.width = '10px';
+                    confetti.style.height = '10px';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.borderRadius = '50%';
+                    confetti.style.zIndex = '9999';
+                    confetti.style.pointerEvents = 'none';
+                    confetti.style.animation = 'fall 3s linear forwards';
+                    
+                    container.appendChild(confetti);
+                    
+                    setTimeout(() => {
+                        container.removeChild(confetti);
+                    }, 3000);
+                }, i * 100);
+            }
+            
+            showAlert('🎉 Congratulations on your analysis!', 'success');
+        }
+
+        function downloadFullDataset() {
+            if (!analysisResults) {
+                showAlert('No data to download', 'error');
+                return;
+            }
+            
+            const dataWithStatus = analysisResults.dataWithStatus;
+            const csv = convertToCSV(dataWithStatus);
+            downloadFile(csv, `full_dataset_with_status_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`, 'text/csv');
+            showAlert('✅ Dataset downloaded successfully!', 'success');
+        }
+
+        function downloadHeatmap() {
+            const canvas = document.getElementById('heatmapCanvas');
+            const link = document.createElement('a');
+            link.download = `heatmap_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            showAlert('✅ Heatmap downloaded successfully!', 'success');
+        }
+
+        function downloadAnalysisReport() {
+            if (!analysisResults) {
+                showAlert('No analysis to download', 'error');
+                return;
+            }
+            
+            let report = 'Health Facility Reporting Analysis Report\n';
+            report += '==========================================\n\n';
+            report += `Generated: ${new Date().toISOString()}\n\n`;
+            
+            report += 'Regional Statistics:\n';
+            report += 'Region,Health Facilities,Months Reported,Total Months,Total Cases,Reporting Rate (%)\n';
+            
+            Object.entries(analysisResults.regionalStats).forEach(([region, stats]) => {
+                report += `${region},${stats.healthFacilities},${stats.monthsReported},${stats.totalMonths},${stats.totalCases},${stats.reportingRate}\n`;
+            });
+            
+            downloadFile(report, `analysis_report_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`, 'text/plain');
+            showAlert('✅ Analysis report downloaded successfully!', 'success');
+        }
+
+        function convertToCSV(data) {
+            if (!data || data.length === 0) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvContent = [
+                headers.join(','),
+                ...data.map(row => headers.map(header => {
+                    const value = row[header];
+                    return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
+                }).join(','))
+            ].join('\n');
+            
+            return csvContent;
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function toggleExpander(contentId) {
+            const content = document.getElementById(contentId);
+            const header = content.previousElementSibling;
+            const arrow = header.querySelector('span');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                arrow.textContent = '▲';
+            } else {
+                content.classList.add('hidden');
+                arrow.textContent = '▼';
+            }
+        }
+
+        // Add CSS animation for confetti
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fall {
+                0% {
+                    transform: translateY(-10px) rotate(0deg);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(100vh) rotate(360deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
