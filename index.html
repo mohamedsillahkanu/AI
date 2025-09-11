@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mohamed's AI Assistant</title>
+    <title>Enhanced File Combiner Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,598 +14,978 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
         }
 
-        .chat-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 800px;
-            height: 600px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
         }
 
-        .chat-header {
-            background: linear-gradient(45deg, #4CAF50, #45a049);
-            color: white;
-            padding: 20px;
+        .main-header {
             text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: relative;
-        }
-
-        .voice-controls {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 10px;
-        }
-
-        .voice-btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
+            padding: 3rem 0;
+            background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%);
             color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            margin-bottom: 2rem;
+            border-radius: 0 0 1rem 1rem;
         }
 
-        .voice-btn:hover {
-            background: rgba(255,255,255,0.3);
+        .main-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
         }
 
-        .voice-btn.active {
-            background: rgba(255,255,255,0.9);
-            color: #4CAF50;
-        }
-
-        .speaking-indicator {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 10px;
-            height: 10px;
-            background: #ff4444;
-            border-radius: 50%;
-            animation: pulse 1s infinite;
-            display: none;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .chat-header h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-
-        .chat-header p {
+        .main-header p {
+            font-size: 1.2rem;
             opacity: 0.9;
-            font-size: 14px;
         }
 
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background: #f8f9fa;
+        .upload-section {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            border: 2px dashed #4CAF50;
+            text-align: center;
+            margin: 2rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
-        .message {
-            margin-bottom: 15px;
-            animation: fadeIn 0.5s ease-in;
+        .upload-section h3 {
+            color: #4CAF50;
+            margin-bottom: 1rem;
         }
 
-        .message.ai {
-            text-align: left;
-        }
-
-        .message.user {
-            text-align: right;
-        }
-
-        .message-bubble {
-            display: inline-block;
-            padding: 12px 18px;
-            border-radius: 18px;
-            max-width: 70%;
-            word-wrap: break-word;
-        }
-
-        .message.ai .message-bubble {
-            background: #e3f2fd;
-            color: #1565c0;
-            border-bottom-left-radius: 5px;
-        }
-
-        .message.user .message-bubble {
-            background: #4CAF50;
-            color: white;
-            border-bottom-right-radius: 5px;
-        }
-
-        .chat-input {
-            padding: 20px;
-            background: white;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 10px;
-        }
-
-        .chat-input input {
-            flex: 1;
-            padding: 12px 16px;
+        .file-input {
+            margin: 1rem 0;
+            padding: 10px;
             border: 2px solid #ddd;
-            border-radius: 25px;
-            outline: none;
-            font-size: 16px;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
             transition: border-color 0.3s;
         }
 
-        .chat-input input:focus {
+        .file-input:hover {
             border-color: #4CAF50;
         }
 
-        .chat-input button {
-            padding: 12px 24px;
+        .btn {
             background: #4CAF50;
             color: white;
             border: none;
-            border-radius: 25px;
+            padding: 12px 24px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 16px;
-            transition: background 0.3s;
+            margin: 10px 5px;
+            transition: background-color 0.3s;
         }
 
-        .chat-input button:hover {
+        .btn:hover {
             background: #45a049;
         }
 
-        .quick-actions {
-            padding: 15px 20px;
-            background: #f1f3f4;
-            border-top: 1px solid #eee;
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
 
-        .quick-actions h4 {
-            margin-bottom: 10px;
-            color: #333;
-            font-size: 14px;
+        .btn-secondary {
+            background: #6c757d;
         }
 
-        .action-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
+        .btn-secondary:hover {
+            background: #545b62;
         }
 
-        .action-btn {
-            padding: 8px 16px;
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .stats-card {
             background: white;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            border-top: 3px solid #4CAF50;
         }
 
-        .action-btn:hover {
-            background: #4CAF50;
+        .stats-card h3 {
+            font-size: 2rem;
+            color: #4CAF50;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            border-left: 4px solid #4CAF50;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .file-type-badge {
+            display: inline-block;
             color: white;
-            border-color: #4CAF50;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .file-type-badge.csv {
+            background-color: #FF9800;
         }
 
-        .typing-indicator {
-            display: none;
-            align-items: center;
-            gap: 5px;
-            margin-bottom: 15px;
+        .file-type-badge.excel {
+            background-color: #4CAF50;
         }
 
-        .typing-dots {
+        .column-info {
+            background-color: #e3f2fd;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 3px solid #2196F3;
+        }
+
+        .column-list {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid #c3e6cb;
+            margin: 1rem 0;
+        }
+
+        .warning-message {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid #ffeaa7;
+            margin: 1rem 0;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid #f5c6cb;
+            margin: 1rem 0;
+        }
+
+        .expandable {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .expandable-header {
+            background: #f8f9fa;
+            padding: 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
             display: flex;
-            gap: 3px;
+            justify-content: between;
+            align-items: center;
         }
 
-        .typing-dots span {
-            width: 8px;
-            height: 8px;
-            background: #4CAF50;
+        .expandable-header:hover {
+            background: #e9ecef;
+        }
+
+        .expandable-content {
+            padding: 1rem;
+            display: none;
+        }
+
+        .expandable.open .expandable-content {
+            display: block;
+        }
+
+        .expandable-toggle {
+            font-size: 1.2rem;
+            margin-left: auto;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
             border-radius: 50%;
-            animation: typing 1.4s infinite ease-in-out;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
         }
 
-        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-        @keyframes typing {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+        .hidden {
+            display: none;
+        }
+
+        .section {
+            background: white;
+            margin: 2rem 0;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .footer {
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+            margin-top: 3rem;
+            border-top: 1px solid #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .main-header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-header p {
+                font-size: 1rem;
+            }
+            
+            .container {
+                padding: 0 10px;
+            }
+            
+            .upload-section {
+                padding: 1rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="voice-controls">
-                <button class="voice-btn active" id="voiceToggle" onclick="safeToggleVoice()">
-                    🔊 <span id="voiceStatus">Voice ON</span>
-                </button>
-                <button class="voice-btn" onclick="safeStopSpeaking()">⏹️ Stop</button>
-            </div>
-            <h1>👋 Mohamed's AI Assistant</h1>
-            <p>Data Science • Public Health • Software Engineering</p>
-            <div class="speaking-indicator" id="speakingIndicator"></div>
-        </div>
-        
-        <div class="chat-messages" id="chatMessages">
-            <div class="message ai">
-                <div class="message-bubble">
-                    Hello! I'm Mohamed's AI assistant. I'm here to tell you about Mohamed Sillah Kanu - a talented Data Scientist, Statistician, and Software Engineer currently working at Northwestern University's Feinberg School of Medicine. 
-                    <br><br>
-                    Mohamed specializes in malaria epidemiology, predictive modeling, and has extensive experience with National Malaria Programs in Africa. He holds an MS in Data Science from George Washington University and an MS in Statistics from University of Sierra Leone.
-                    <br><br>
-                    How can I help you learn more about Mohamed today? 🤔
-                </div>
-            </div>
-        </div>
-
-        <div class="typing-indicator" id="typingIndicator">
-            <div class="message-bubble">
-                <div class="typing-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </div>
-        </div>
-
-        <div class="quick-actions">
-            <h4>Quick Questions:</h4>
-            <div class="action-buttons">
-                <div class="action-btn" onclick="safeQuickMessage('Tell me about his education')">🎓 Education</div>
-                <div class="action-btn" onclick="safeQuickMessage('What is his current role?')">💼 Current Work</div>
-                <div class="action-btn" onclick="safeQuickMessage('Show me his technical skills')">💻 Technical Skills</div>
-                <div class="action-btn" onclick="safeQuickMessage('What are his research interests?')">🔬 Research</div>
-                <div class="action-btn" onclick="safeQuickMessage('Tell me about his publications')">📚 Publications</div>
-                <div class="action-btn" onclick="safeQuickMessage('How can I contact him?')">📧 Contact</div>
-            </div>
-        </div>
-
-        <div class="chat-input">
-            <input type="text" id="userInput" placeholder="Ask me anything about Mohamed..." onkeypress="safeHandleKeyPress(event)">
-            <button onclick="safeSendMessage()">Send</button>
+    <div class="main-header">
+        <div class="container">
+            <h1>🔗 Enhanced File Combiner Tool</h1>
+            <p>Combine multiple XLS, XLSX, and CSV files with ALL columns (common + uncommon)</p>
         </div>
     </div>
 
+    <div class="container">
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <h3>📁 Upload Multiple Files</h3>
+            <p>Upload multiple XLS, XLSX, and CSV files to combine them with ALL columns preserved</p>
+            <input type="file" id="fileInput" class="file-input" multiple accept=".csv,.xlsx,.xls">
+            <div style="margin-top: 1rem;">
+                <button id="processBtn" class="btn" disabled>🔗 Process Files</button>
+                <button id="resetBtn" class="btn btn-secondary hidden">🔄 Upload New Files</button>
+            </div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Processing and cleaning uploaded files...</p>
+        </div>
+
+        <!-- Files Summary -->
+        <div id="filesSummary" class="hidden">
+            <h2>📋 Uploaded Files Summary</h2>
+            <div id="statsGrid" class="stats-grid"></div>
+            <div id="fileDetails"></div>
+            <div id="columnAnalysis"></div>
+            <button id="combineBtn" class="btn">🔗 Combine Files (ALL Columns)</button>
+        </div>
+
+        <!-- Combination Results -->
+        <div id="combinationResults" class="hidden">
+            <h2>📊 Combined Results</h2>
+            <div id="combinationSummary"></div>
+            <div id="downloadSection">
+                <h3>💾 Download Combined Data</h3>
+                <button id="downloadBtn" class="btn">📥 Download as CSV</button>
+            </div>
+        </div>
+
+        <!-- Features Section (shown when no files uploaded) -->
+        <div id="featuresSection" class="section">
+            <h2>ℹ️ How It Works - Enhanced Version</h2>
+            <div class="feature-grid">
+                <div>
+                    <h3>Enhanced Combination Logic:</h3>
+                    <ul style="margin-left: 2rem; margin-top: 1rem;">
+                        <li><strong>Data Cleaning:</strong> Removes empty rows and unnamed columns before merging</li>
+                        <li><strong>All Columns Preserved:</strong> Combines ALL columns (common + uncommon)</li>
+                        <li><strong>By File Type:</strong> Files are grouped by type (CSV, Excel)</li>
+                        <li><strong>Source Tracking:</strong> A 'source_file' column tracks original files</li>
+                        <li><strong>Missing Data Handling:</strong> Missing columns filled with empty values</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Data Cleaning Features:</h3>
+                    <ul style="margin-left: 2rem; margin-top: 1rem;">
+                        <li>Removes rows where first column is empty</li>
+                        <li>Removes "Unnamed" columns</li>
+                        <li>Removes completely empty rows</li>
+                        <li>Preserves all meaningful data</li>
+                        <li>Complete data preservation</li>
+                        <li>Clear source file tracking</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2>✨ Enhanced Tool Features</h2>
+            <div class="feature-grid">
+                <div>
+                    <h3>📋 Enhanced Processing:</h3>
+                    <ul style="margin-left: 2rem; margin-top: 1rem;">
+                        <li>Automatic data cleaning</li>
+                        <li>Preserve ALL columns (common + unique)</li>
+                        <li>Remove empty/unnamed data</li>
+                        <li>Smart column alignment</li>
+                        <li>Detailed progress reporting</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>🔗 Improved Combination:</h3>
+                    <ul style="margin-left: 2rem; margin-top: 1rem;">
+                        <li>No data loss (all columns preserved)</li>
+                        <li>Clean, organized output</li>
+                        <li>Comprehensive column analysis</li>
+                        <li>Statistics without data display</li>
+                        <li>CSV download option</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>🔗 Enhanced File Combiner Tool v2.0 | Preserves ALL Columns</p>
+    </div>
+
     <script>
-        // Global state management
-        let isInitialized = false;
-        let voiceEnabled = true;
-        let currentSpeech = null;
-
-        // Safe element getter with error handling
-        function safeGetElement(id) {
-            try {
-                return document.getElementById(id);
-            } catch (error) {
-                console.warn(`Element ${id} not found:`, error);
-                return null;
+        class FileCombiner {
+            constructor() {
+                this.filesData = [];
+                this.combinedData = null;
+                this.combinationLog = [];
+                this.initializeEventListeners();
             }
-        }
 
-        // Safe style setter
-        function safeSetStyle(elementId, property, value) {
-            try {
-                const element = safeGetElement(elementId);
-                if (element && element.style) {
-                    element.style[property] = value;
-                    return true;
-                }
-            } catch (error) {
-                console.warn(`Style setting failed for ${elementId}:`, error);
+            initializeEventListeners() {
+                document.getElementById('fileInput').addEventListener('change', this.handleFileSelection.bind(this));
+                document.getElementById('processBtn').addEventListener('click', this.processFiles.bind(this));
+                document.getElementById('combineBtn').addEventListener('click', this.combineFiles.bind(this));
+                document.getElementById('resetBtn').addEventListener('click', this.resetApplication.bind(this));
+                document.getElementById('downloadBtn').addEventListener('click', this.downloadCombinedData.bind(this));
             }
-            return false;
-        }
 
-        // Safe class management
-        function safeAddClass(elementId, className) {
-            try {
-                const element = safeGetElement(elementId);
-                if (element && element.classList) {
-                    element.classList.add(className);
-                    return true;
-                }
-            } catch (error) {
-                console.warn(`Class add failed for ${elementId}:`, error);
-            }
-            return false;
-        }
-
-        function safeRemoveClass(elementId, className) {
-            try {
-                const element = safeGetElement(elementId);
-                if (element && element.classList) {
-                    element.classList.remove(className);
-                    return true;
-                }
-            } catch (error) {
-                console.warn(`Class remove failed for ${elementId}:`, error);
-            }
-            return false;
-        }
-
-        // Mohamed's information database
-        const mohamedInfo = {
-            education: "🎓 **Mohamed's Educational Background:**\n\n• **MS Data Science** - The George Washington University (2024)\n• **MS Statistics** - University of Sierra Leone (2023)\n• **BSc Software Engineering** - Limkokwing University (2020)\n• **BSc Mathematics & Statistics** - University of Sierra Leone (2020)\n\nHe has a unique interdisciplinary background combining statistics, data science, and software engineering!",
-            
-            work: "💼 **Current Position:**\n\nMohamed is a **Research Data Analyst Associate** at Northwestern University's Feinberg School of Medicine (2024-Present). He collaborates with National Malaria Programs in Africa, leveraging advanced data analytics for epidemiology and public health research.\n\n**Previous roles include:**\n• CEO - Informatics Consultancy Firm\n• Malaria Epidemiologist - WHO Sierra Leone\n• Technical Assistant - Catholic Relief Services\n• Software Developer - Various organizations",
-            
-            skills: "💻 **Technical Skills:**\n\n**Programming:** Python, R, JavaScript, Java, C++, HTML5, CSS\n\n**Data Science:** Machine Learning, Statistical Analysis, Data Visualization, Predictive Modeling, Deep Learning\n\n**Databases:** SQL, MySQL, MongoDB, Neo4j\n\n**Cloud:** AWS, Azure\n\n**Specialized:** Streamlit, Shiny, GIS applications, Time Series Analysis",
-            
-            research: "🔬 **Research Interests:**\n\n• Infectious Disease Modeling\n• Machine Learning in Healthcare\n• Cancer Prediction Models\n• Statistical Computation\n• Health Equity Analytics\n• GIS for Public Health\n• Wildfire Behavior Modeling\n• ML Algorithms in Fraud Detection\n\nHis work focuses on applying advanced analytics to solve real-world public health challenges!",
-            
-            publications: "📚 **Publications in Progress:**\n\n1. Predictive Modeling of Diabetes in the US using Machine Learning\n2. Using routine malaria surveillance data for stratification in West African countries\n3. Interrupted Time Series Analysis of malaria interventions in Sierra Leone\n4. Time Series Analysis on Walmart Weekly Sales Data\n\nHe's also a member of ASTMH, AMMnet, and other professional organizations.",
-            
-            contact: "📧 **Contact Information:**\n\n• **Email:** sillahmohamedkanu@gmail.com\n• **Phone:** +1 240-889-6759\n• **Portfolio:** mohamedsillahkanu.github.io/portfolio\n• **Location:** Chicago, IL (Northwestern University)\n\nFeel free to reach out for collaborations, consultations, or research opportunities!",
-            
-            achievements: "🏆 **Key Achievements:**\n\n• Led digitalization of Sierra Leone's first ITN Mass Campaign (98% national coverage)\n• Developed web portal for National Malaria Control Program\n• Contributed to reducing malaria prevalence from 40% to 22%\n• Optimized Seasonal Malaria Chemoprevention targeting in Ivory Coast\n• Multiple certifications from IBM, Google, and deeplearning.ai",
-            
-            malaria: "🦟 **Mohamed's Malaria Research:**\n\nMohamed is a leading expert in malaria epidemiology! He works with National Malaria Programs across Africa, has contributed to reducing malaria burden, and specializes in:\n\n• Seasonal Malaria Chemoprevention optimization\n• Surveillance data analysis\n• ITN campaign digitalization\n• Intervention effectiveness modeling\n\nHis work has real-world impact in fighting malaria! 🌍"
-        };
-
-        // Safe speech function
-        function safeSpeak(text) {
-            if (!voiceEnabled || !text) return;
-            
-            try {
-                safeStopSpeaking();
+            handleFileSelection(event) {
+                const files = event.target.files;
+                const processBtn = document.getElementById('processBtn');
                 
-                if ('speechSynthesis' in window) {
-                    const cleanText = text
-                        .replace(/\*\*(.*?)\*\*/g, '$1')
-                        .replace(/\n/g, ' ')
-                        .replace(/•/g, '')
-                        .replace(/🎓|💼|💻|🔬|📚|📧|🏆|🦟|🌍|👋|🤔|⏹️|🔊/g, '')
-                        .replace(/\s+/g, ' ')
-                        .trim();
+                if (files.length > 0) {
+                    processBtn.disabled = false;
+                    processBtn.textContent = `🔗 Process ${files.length} File(s)`;
+                } else {
+                    processBtn.disabled = true;
+                    processBtn.textContent = '🔗 Process Files';
+                }
+            }
 
-                    if (cleanText) {
-                        currentSpeech = new SpeechSynthesisUtterance(cleanText);
-                        currentSpeech.rate = 0.9;
-                        currentSpeech.pitch = 1;
-                        currentSpeech.volume = 0.8;
+            async processFiles() {
+                const fileInput = document.getElementById('fileInput');
+                const files = fileInput.files;
+                
+                if (files.length === 0) return;
 
-                        currentSpeech.onstart = () => safeSetStyle('speakingIndicator', 'display', 'block');
-                        currentSpeech.onend = () => {
-                            safeSetStyle('speakingIndicator', 'display', 'none');
-                            currentSpeech = null;
-                        };
-                        currentSpeech.onerror = () => {
-                            safeSetStyle('speakingIndicator', 'display', 'none');
-                            currentSpeech = null;
-                        };
+                this.showLoading(true);
+                this.hideElement('featuresSection');
+                this.filesData = [];
 
-                        speechSynthesis.speak(currentSpeech);
+                try {
+                    for (let file of files) {
+                        const data = await this.readFile(file);
+                        if (data) {
+                            this.filesData.push(data);
+                        }
                     }
-                }
-            } catch (error) {
-                console.warn('Speech failed:', error);
-            }
-        }
 
-        function safeStopSpeaking() {
-            try {
-                if (typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking) {
-                    speechSynthesis.cancel();
+                    if (this.filesData.length > 0) {
+                        this.displayFilesSummary();
+                    }
+                } catch (error) {
+                    this.showError('Error processing files: ' + error.message);
+                } finally {
+                    this.showLoading(false);
                 }
-                safeSetStyle('speakingIndicator', 'display', 'none');
-                currentSpeech = null;
-            } catch (error) {
-                console.warn('Stop speaking failed:', error);
             }
-        }
 
-        function safeToggleVoice() {
-            try {
-                voiceEnabled = !voiceEnabled;
-                const voiceStatus = safeGetElement('voiceStatus');
-                
-                if (voiceEnabled) {
-                    if (voiceStatus) voiceStatus.textContent = 'Voice ON';
-                    safeAddClass('voiceToggle', 'active');
+            async readFile(file) {
+                return new Promise((resolve, reject) => {
+                    const fileExtension = file.name.toLowerCase().split('.').pop();
+                    const reader = new FileReader();
+
+                    reader.onload = (e) => {
+                        try {
+                            let data, fileType;
+
+                            if (fileExtension === 'csv') {
+                                const csvText = e.target.result;
+                                const parsed = Papa.parse(csvText, {
+                                    header: true,
+                                    skipEmptyLines: true,
+                                    dynamicTyping: true
+                                });
+                                data = parsed.data;
+                                fileType = 'CSV';
+                            } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+                                const workbook = XLSX.read(e.target.result, { type: 'array' });
+                                const firstSheetName = workbook.SheetNames[0];
+                                const worksheet = workbook.Sheets[firstSheetName];
+                                data = XLSX.utils.sheet_to_json(worksheet);
+                                fileType = 'Excel';
+                            } else {
+                                reject(new Error(`Unsupported file type: ${fileExtension}`));
+                                return;
+                            }
+
+                            // Clean the data
+                            const cleanedData = this.cleanData(data, file.name);
+                            
+                            resolve({
+                                name: file.name,
+                                type: fileType,
+                                data: cleanedData,
+                                originalSize: data.length,
+                                cleanedSize: cleanedData.length,
+                                columns: Object.keys(cleanedData[0] || {})
+                            });
+                        } catch (error) {
+                            reject(new Error(`Error reading ${file.name}: ${error.message}`));
+                        }
+                    };
+
+                    reader.onerror = () => reject(new Error(`Error reading file: ${file.name}`));
+
+                    if (fileExtension === 'csv') {
+                        reader.readAsText(file);
+                    } else {
+                        reader.readAsArrayBuffer(file);
+                    }
+                });
+            }
+
+            cleanData(data, filename) {
+                if (!data || data.length === 0) return [];
+
+                // Remove rows with empty first column
+                const firstColumnKey = Object.keys(data[0] || {})[0];
+                let cleaned = data.filter(row => {
+                    const firstValue = row[firstColumnKey];
+                    return firstValue !== null && firstValue !== undefined && 
+                           String(firstValue).trim() !== '';
+                });
+
+                // Remove unnamed columns and clean column names
+                cleaned = cleaned.map(row => {
+                    const cleanRow = {};
+                    Object.keys(row).forEach(key => {
+                        const cleanKey = String(key).trim();
+                        if (!cleanKey.toLowerCase().startsWith('unnamed') && 
+                            cleanKey !== 'null' && cleanKey !== '') {
+                            cleanRow[cleanKey] = row[key];
+                        }
+                    });
+                    return cleanRow;
+                });
+
+                // Remove completely empty rows
+                cleaned = cleaned.filter(row => {
+                    return Object.values(row).some(value => 
+                        value !== null && value !== undefined && String(value).trim() !== ''
+                    );
+                });
+
+                return cleaned;
+            }
+
+            displayFilesSummary() {
+                const summaryDiv = document.getElementById('filesSummary');
+                const statsGrid = document.getElementById('statsGrid');
+                const fileDetails = document.getElementById('fileDetails');
+                const columnAnalysis = document.getElementById('columnAnalysis');
+
+                // Stats grid
+                const totalFiles = this.filesData.length;
+                const csvCount = this.filesData.filter(f => f.type === 'CSV').length;
+                const excelCount = this.filesData.filter(f => f.type === 'Excel').length;
+
+                statsGrid.innerHTML = `
+                    <div class="stats-card">
+                        <h3>${totalFiles}</h3>
+                        <p>Total Files</p>
+                    </div>
+                    <div class="stats-card">
+                        <h3>${csvCount}</h3>
+                        <p>CSV Files</p>
+                    </div>
+                    <div class="stats-card">
+                        <h3>${excelCount}</h3>
+                        <p>Excel Files</p>
+                    </div>
+                `;
+
+                // File details
+                let fileDetailsHTML = '<h3>📄 Individual File Details</h3>';
+                this.filesData.forEach((file, index) => {
+                    const badgeClass = file.type === 'CSV' ? 'csv' : 'excel';
+                    fileDetailsHTML += `
+                        <div class="expandable" id="file-${index}">
+                            <div class="expandable-header" onclick="this.parentElement.classList.toggle('open')">
+                                <div>
+                                    <span class="file-type-badge ${badgeClass}">${file.type}</span>
+                                    <strong>${file.name}</strong> (${file.cleanedSize} rows × ${file.columns.length} columns)
+                                </div>
+                                <span class="expandable-toggle">▼</span>
+                            </div>
+                            <div class="expandable-content">
+                                <div class="file-card">
+                                    <p><small>📏 Original: ${file.originalSize} rows → Cleaned: ${file.cleanedSize} rows</small></p>
+                                    <p><strong>All Columns:</strong></p>
+                                    <div class="column-list">${file.columns.join(', ')}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                fileDetails.innerHTML = fileDetailsHTML;
+
+                // Column analysis
+                this.displayColumnAnalysis(columnAnalysis);
+
+                this.showElement('filesSummary');
+            }
+
+            displayColumnAnalysis(container) {
+                const filesByType = this.groupFilesByType();
+                let analysisHTML = '<h3>🔍 Column Analysis by File Type</h3>';
+
+                Object.entries(filesByType).forEach(([fileType, files]) => {
+                    if (files.length > 1) {
+                        const allColumns = this.getAllColumns(files);
+                        const commonColumns = this.getCommonColumns(files);
+                        
+                        analysisHTML += `
+                            <div class="column-info">
+                                <strong>${fileType} Files (${files.length} files)</strong><br>
+                                <strong>Total unique columns:</strong> ${allColumns.length}<br>
+                                <strong>Common columns (${commonColumns.length}):</strong> ${commonColumns.length > 0 ? commonColumns.join(', ') : 'None'}<br>
+                                <strong>All columns will be preserved in final output</strong><br>
+                                <small>Files: ${files.map(f => f.name).join(', ')}</small>
+                            </div>
+                            <div class="expandable">
+                                <div class="expandable-header" onclick="this.parentElement.classList.toggle('open')">
+                                    <span>View all ${allColumns.length} columns for ${fileType} files</span>
+                                    <span class="expandable-toggle">▼</span>
+                                </div>
+                                <div class="expandable-content">
+                                    <div class="column-list">${allColumns.join(', ')}</div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        analysisHTML += `
+                            <div class="column-info">
+                                <strong>${fileType} Files (1 file)</strong><br>
+                                <strong>All ${files[0].columns.length} columns will be preserved</strong><br>
+                                <small>File: ${files[0].name}</small>
+                            </div>
+                        `;
+                    }
+                });
+
+                container.innerHTML = analysisHTML;
+            }
+
+            combineFiles() {
+                this.showLoading(true, 'Combining files with ALL columns...');
+
+                try {
+                    const filesByType = this.groupFilesByType();
+                    this.combinedData = {};
+                    this.combinationLog = [];
+
+                    Object.entries(filesByType).forEach(([fileType, files]) => {
+                        if (files.length === 1) {
+                            // Single file
+                            const combinedData = files[0].data.map(row => ({
+                                ...row,
+                                source_file: files[0].name
+                            }));
+                            this.combinedData[fileType] = combinedData;
+
+                            this.combinationLog.push({
+                                fileType,
+                                filesCombined: 1,
+                                fileNames: [files[0].name],
+                                totalRowsBefore: files[0].cleanedSize,
+                                totalRowsAfter: combinedData.length,
+                                allColumns: [...files[0].columns, 'source_file']
+                            });
+                        } else {
+                            // Multiple files
+                            const allColumns = this.getAllColumns(files);
+                            const combinedRows = [];
+
+                            files.forEach(file => {
+                                file.data.forEach(row => {
+                                    const newRow = {};
+                                    // Add all columns with default empty values
+                                    allColumns.forEach(col => {
+                                        newRow[col] = row[col] || '';
+                                    });
+                                    newRow.source_file = file.name;
+                                    combinedRows.push(newRow);
+                                });
+                            });
+
+                            this.combinedData[fileType] = combinedRows;
+
+                            this.combinationLog.push({
+                                fileType,
+                                filesCombined: files.length,
+                                fileNames: files.map(f => f.name),
+                                totalRowsBefore: files.reduce((sum, f) => sum + f.cleanedSize, 0),
+                                totalRowsAfter: combinedRows.length,
+                                allColumns: [...allColumns, 'source_file'],
+                                commonColumns: this.getCommonColumns(files)
+                            });
+                        }
+                    });
+
+                    this.displayCombinationResults();
+                    this.showSuccess('✅ Files combined successfully with ALL columns preserved!');
+                } catch (error) {
+                    this.showError('❌ Error combining files: ' + error.message);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            displayCombinationResults() {
+                const resultsDiv = document.getElementById('combinationResults');
+                const summaryDiv = document.getElementById('combinationSummary');
+
+                let summaryHTML = '<h3>📋 Combination Summary</h3>';
+
+                this.combinationLog.forEach(log => {
+                    summaryHTML += `
+                        <div class="success-message">
+                            <strong>${log.fileType} Files Combined</strong><br>
+                            <strong>Files:</strong> ${log.filesCombined} files combined<br>
+                            <strong>Names:</strong> ${log.fileNames.join(', ')}<br>
+                            ${log.commonColumns ? `<strong>Common Columns:</strong> ${log.commonColumns.length}<br>` : ''}
+                            <strong>Total Unique Columns:</strong> ${log.allColumns.length - 1}<br>
+                            <strong>Rows:</strong> ${log.totalRowsBefore} → ${log.totalRowsAfter}<br>
+                            <strong>Final Columns (including source_file):</strong> ${log.allColumns.length}
+                        </div>
+                        <div class="expandable">
+                            <div class="expandable-header" onclick="this.parentElement.classList.toggle('open')">
+                                <span>View all ${log.allColumns.length} columns in combined ${log.fileType} data</span>
+                                <span class="expandable-toggle">▼</span>
+                            </div>
+                            <div class="expandable-content">
+                                <div class="column-list">${log.allColumns.join(', ')}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Add data summary for each file type
+                Object.entries(this.combinedData).forEach(([fileType, data]) => {
+                    const numericColumns = this.getNumericColumns(data);
+                    const categoricalColumns = this.getCategoricalColumns(data);
+                    const sourceFiles = [...new Set(data.map(row => row.source_file))];
+
+                    summaryHTML += `
+                        <h3>📈 Combined ${fileType} Data Summary</h3>
+                        <div class="stats-grid">
+                            <div class="stats-card">
+                                <h3>${data.length}</h3>
+                                <p>Rows</p>
+                            </div>
+                            <div class="stats-card">
+                                <h3>${Object.keys(data[0] || {}).length}</h3>
+                                <p>Total Columns</p>
+                            </div>
+                            <div class="stats-card">
+                                <h3>${numericColumns.length}</h3>
+                                <p>Numeric Columns</p>
+                            </div>
+                            <div class="stats-card">
+                                <h3>${sourceFiles.length}</h3>
+                                <p>Source Files</p>
+                            </div>
+                        </div>
+                        <div class="expandable">
+                            <div class="expandable-header" onclick="this.parentElement.classList.toggle('open')">
+                                <span>📊 Column Data Types for ${fileType}</span>
+                                <span class="expandable-toggle">▼</span>
+                            </div>
+                            <div class="expandable-content">
+                                <p><strong>📝 Categorical/Text Columns</strong>: ${categoricalColumns.length}</p>
+                                ${categoricalColumns.length > 0 ? `<p style="margin-left: 1rem;">${categoricalColumns.slice(0, 10).join(', ')}${categoricalColumns.length > 10 ? '...' : ''}</p>` : ''}
+                                <p><strong>🔢 Numeric Columns</strong>: ${numericColumns.length}</p>
+                                ${numericColumns.length > 0 ? `<p style="margin-left: 1rem;">${numericColumns.slice(0, 10).join(', ')}${numericColumns.length > 10 ? '...' : ''}</p>` : ''}
+                                <p><strong>📁 Source Tracking</strong>: source_file column</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                summaryDiv.innerHTML = summaryHTML;
+                this.showElement('combinationResults');
+                document.getElementById('resetBtn').classList.remove('hidden');
+            }
+
+            downloadCombinedData() {
+                if (!this.combinedData) return;
+
+                let finalData;
+                const fileTypes = Object.keys(this.combinedData);
+
+                if (fileTypes.length === 1) {
+                    // Single file type
+                    finalData = this.combinedData[fileTypes[0]];
                 } else {
-                    if (voiceStatus) voiceStatus.textContent = 'Voice OFF';
-                    safeRemoveClass('voiceToggle', 'active');
-                    safeStopSpeaking();
-                }
-            } catch (error) {
-                console.warn('Toggle voice failed:', error);
-            }
-        }
-
-        function safeAddMessage(content, isUser = false) {
-            try {
-                const messagesContainer = safeGetElement('chatMessages');
-                if (!messagesContainer) return;
-
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
-                
-                const bubbleDiv = document.createElement('div');
-                bubbleDiv.className = 'message-bubble';
-                
-                if (!isUser) {
-                    const formattedContent = content
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\n/g, '<br>');
-                    bubbleDiv.innerHTML = formattedContent;
-                    safeSpeak(content);
-                } else {
-                    bubbleDiv.innerHTML = content;
-                }
-                
-                messageDiv.appendChild(bubbleDiv);
-                messagesContainer.appendChild(messageDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            } catch (error) {
-                console.warn('Add message failed:', error);
-            }
-        }
-
-        function safeShowTyping() {
-            safeSetStyle('typingIndicator', 'display', 'flex');
-            const messagesContainer = safeGetElement('chatMessages');
-            if (messagesContainer) {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-        }
-
-        function safeHideTyping() {
-            safeSetStyle('typingIndicator', 'display', 'none');
-        }
-
-        function getAIResponse(userMessage) {
-            const message = userMessage.toLowerCase();
-            
-            if (message.includes('education') || message.includes('degree') || message.includes('university') || message.includes('study')) {
-                return mohamedInfo.education;
-            }
-            if (message.includes('work') || message.includes('job') || message.includes('position') || message.includes('role') || message.includes('northwestern')) {
-                return mohamedInfo.work;
-            }
-            if (message.includes('skill') || message.includes('programming') || message.includes('technical') || message.includes('technology')) {
-                return mohamedInfo.skills;
-            }
-            if (message.includes('research') || message.includes('interest') || message.includes('focus')) {
-                return mohamedInfo.research;
-            }
-            if (message.includes('publication') || message.includes('paper') || message.includes('article')) {
-                return mohamedInfo.publications;
-            }
-            if (message.includes('contact') || message.includes('email') || message.includes('phone') || message.includes('reach')) {
-                return mohamedInfo.contact;
-            }
-            if (message.includes('achievement') || message.includes('accomplishment') || message.includes('success')) {
-                return mohamedInfo.achievements;
-            }
-            if (message.includes('malaria')) {
-                return mohamedInfo.malaria;
-            }
-            if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
-                return "Hello! 👋 I'm here to help you learn about Mohamed Sillah Kanu. You can ask me about his education, work experience, technical skills, research interests, or anything else you'd like to know!";
-            }
-            
-            return "I'd be happy to help you learn more about Mohamed! You can ask me about:\n\n• His educational background\n• Current work at Northwestern University\n• Technical skills and expertise\n• Research interests and publications\n• Contact information\n• His achievements in malaria research\n\nWhat would you like to know? 🤔";
-        }
-
-        function safeSendMessage() {
-            try {
-                const input = safeGetElement('userInput');
-                if (!input) return;
-                
-                const message = input.value.trim();
-                if (message === '') return;
-                
-                safeAddMessage(message, true);
-                input.value = '';
-                
-                safeShowTyping();
-                
-                setTimeout(() => {
-                    safeHideTyping();
-                    const response = getAIResponse(message);
-                    safeAddMessage(response, false);
-                }, 1000 + Math.random() * 1000);
-            } catch (error) {
-                console.warn('Send message failed:', error);
-            }
-        }
-
-        function safeQuickMessage(message) {
-            try {
-                const input = safeGetElement('userInput');
-                if (input) {
-                    input.value = message;
-                    safeSendMessage();
-                }
-            } catch (error) {
-                console.warn('Quick message failed:', error);
-            }
-        }
-
-        function safeHandleKeyPress(event) {
-            try {
-                if (event.key === 'Enter') {
-                    safeSendMessage();
-                }
-            } catch (error) {
-                console.warn('Key press failed:', error);
-            }
-        }
-
-        // Robust initialization
-        function initializeApp() {
-            if (isInitialized) return;
-            
-            try {
-                // Focus input
-                const userInput = safeGetElement('userInput');
-                if (userInput) {
-                    userInput.focus();
-                }
-
-                // Initialize speech
-                if ('speechSynthesis' in window) {
-                    speechSynthesis.getVoices();
-                    speechSynthesis.addEventListener('voiceschanged', () => {
-                        speechSynthesis.getVoices();
+                    // Multiple file types - combine all
+                    finalData = [];
+                    Object.entries(this.combinedData).forEach(([fileType, data]) => {
+                        const dataWithType = data.map(row => ({
+                            ...row,
+                            data_type: fileType
+                        }));
+                        finalData.push(...dataWithType);
                     });
                 }
 
-                // Welcome message
-                setTimeout(() => {
-                    const welcomeText = "Hello! I'm Mohamed's AI assistant. I'm here to tell you about Mohamed Sillah Kanu, a talented Data Scientist, Statistician, and Software Engineer. How can I help you learn more about Mohamed today?";
-                    safeSpeak(welcomeText);
-                }, 2000);
+                // Convert to CSV
+                const csvContent = this.convertToCSV(finalData);
+                
+                // Create download
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '').replace('T', '_');
+                const filename = fileTypes.length === 1 
+                    ? `combined_${fileTypes[0].toLowerCase()}_data_${timestamp}.csv`
+                    : `combined_all_data_${timestamp}.csv`;
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
 
-                isInitialized = true;
-            } catch (error) {
-                console.warn('Initialization failed:', error);
+            convertToCSV(data) {
+                if (!data || data.length === 0) return '';
+                
+                const headers = Object.keys(data[0]);
+                const csvRows = [headers.join(',')];
+                
+                data.forEach(row => {
+                    const values = headers.map(header => {
+                        let value = row[header] || '';
+                        // Escape commas and quotes
+                        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+                            value = '"' + value.replace(/"/g, '""') + '"';
+                        }
+                        return value;
+                    });
+                    csvRows.push(values.join(','));
+                });
+                
+                return csvRows.join('\n');
+            }
+
+            groupFilesByType() {
+                const grouped = {};
+                this.filesData.forEach(file => {
+                    if (!grouped[file.type]) {
+                        grouped[file.type] = [];
+                    }
+                    grouped[file.type].push(file);
+                });
+                return grouped;
+            }
+
+            getAllColumns(files) {
+                const allColumns = new Set();
+                files.forEach(file => {
+                    file.columns.forEach(col => allColumns.add(col));
+                });
+                return Array.from(allColumns).sort();
+            }
+
+            getCommonColumns(files) {
+                if (files.length === 0) return [];
+                
+                let common = new Set(files[0].columns);
+                files.slice(1).forEach(file => {
+                    common = new Set([...common].filter(col => file.columns.includes(col)));
+                });
+                return Array.from(common).sort();
+            }
+
+            getNumericColumns(data) {
+                if (!data || data.length === 0) return [];
+                
+                const sampleRow = data[0];
+                return Object.keys(sampleRow).filter(key => {
+                    if (key === 'source_file' || key === 'data_type') return false;
+                    const value = sampleRow[key];
+                    return typeof value === 'number' || (!isNaN(value) && !isNaN(parseFloat(value)));
+                });
+            }
+
+            getCategoricalColumns(data) {
+                if (!data || data.length === 0) return [];
+                
+                const allColumns = Object.keys(data[0]);
+                const numericColumns = this.getNumericColumns(data);
+                return allColumns.filter(col => 
+                    !numericColumns.includes(col) && col !== 'source_file' && col !== 'data_type'
+                );
+            }
+
+            resetApplication() {
+                this.filesData = [];
+                this.combinedData = null;
+                this.combinationLog = [];
+                
+                document.getElementById('fileInput').value = '';
+                document.getElementById('processBtn').disabled = true;
+                document.getElementById('processBtn').textContent = '🔗 Process Files';
+                
+                this.hideElement('filesSummary');
+                this.hideElement('combinationResults');
+                this.hideElement('resetBtn');
+                this.showElement('featuresSection');
+                
+                // Clear any messages
+                const messages = document.querySelectorAll('.success-message, .error-message, .warning-message');
+                messages.forEach(msg => msg.remove());
+            }
+
+            showLoading(show, message = 'Processing and cleaning uploaded files...') {
+                const loadingDiv = document.getElementById('loading');
+                if (show) {
+                    loadingDiv.querySelector('p').textContent = message;
+                    loadingDiv.classList.remove('hidden');
+                } else {
+                    loadingDiv.classList.add('hidden');
+                }
+            }
+
+            showElement(id) {
+                document.getElementById(id).classList.remove('hidden');
+            }
+
+            hideElement(id) {
+                document.getElementById(id).classList.add('hidden');
+            }
+
+            showSuccess(message) {
+                this.showMessage(message, 'success-message');
+            }
+
+            showError(message) {
+                this.showMessage(message, 'error-message');
+            }
+
+            showWarning(message) {
+                this.showMessage(message, 'warning-message');
+            }
+
+            showMessage(message, className) {
+                // Remove existing messages
+                const existingMessages = document.querySelectorAll('.success-message, .error-message, .warning-message');
+                existingMessages.forEach(msg => msg.remove());
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = className;
+                messageDiv.textContent = message;
+                
+                const container = document.querySelector('.container');
+                const uploadSection = document.querySelector('.upload-section');
+                
+                // Find a safe insertion point
+                if (uploadSection && uploadSection.nextSibling) {
+                    container.insertBefore(messageDiv, uploadSection.nextSibling);
+                } else {
+                    // If nextSibling doesn't exist, append after upload section
+                    uploadSection.parentNode.insertBefore(messageDiv, uploadSection.nextElementSibling);
+                }
+                
+                // Auto-remove success messages after 5 seconds
+                if (className === 'success-message') {
+                    setTimeout(() => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.parentNode.removeChild(messageDiv);
+                        }
+                    }, 5000);
+                }
             }
         }
 
-        // Multiple initialization attempts
-        document.addEventListener('DOMContentLoaded', initializeApp);
-        window.addEventListener('load', initializeApp);
-        
-        // Fallback initialization
-        setTimeout(initializeApp, 1000);
-        setTimeout(initializeApp, 3000);
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new FileCombiner();
+        });
     </script>
 </body>
 </html>
