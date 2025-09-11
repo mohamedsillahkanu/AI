@@ -706,9 +706,9 @@
             
             const ctx = canvas.getContext('2d');
             
-            // Set canvas size
-            canvas.width = 1200;
-            canvas.height = Math.max(450, hfIds.length * 20 + 150);
+            // Set canvas size - increased height significantly
+            canvas.width = Math.max(1200, dates.length * 25 + 300);
+            canvas.height = Math.max(700, hfIds.length * 30 + 250);
             
             // Clear canvas with white background
             ctx.fillStyle = '#ffffff';
@@ -737,10 +737,10 @@
             ctx.fillText('Report', legendCenterX + 35, legendY + 22);
             
             // Calculate dimensions for heatmap
-            const startX = 150;
-            const startY = 100;
-            const cellWidth = Math.max(10, (canvas.width - 200) / dates.length);
-            const cellHeight = Math.max(15, (canvas.height - 150) / hfIds.length);
+            const startX = 180;
+            const startY = 120;
+            const cellWidth = Math.max(15, (canvas.width - 280) / dates.length);
+            const cellHeight = Math.max(20, (canvas.height - 220) / hfIds.length);
             
             // Draw heatmap
             hfIds.forEach((hfId, hfIndex) => {
@@ -760,19 +760,16 @@
                 ctx.fillText(hfId.substring(0, 15), startX - 10, startY + hfIndex * cellHeight + cellHeight/2 + 4);
             });
             
-            // Draw x-axis date labels in YYYY-MM format (every few dates to avoid overlap)
-            const dateStep = Math.max(1, Math.floor(dates.length / 10));
+            // Draw x-axis date labels for EVERY date in YYYY-MM format
             ctx.fillStyle = '#333333';
-            ctx.font = '12px Arial';
+            ctx.font = '10px Arial';
             ctx.textAlign = 'center';
             dates.forEach((date, dateIndex) => {
-                if (dateIndex % dateStep === 0) {
-                    ctx.save();
-                    ctx.translate(startX + dateIndex * cellWidth + cellWidth/2, startY + hfIds.length * cellHeight + 20);
-                    ctx.rotate(-Math.PI/4);
-                    ctx.fillText(date, 0, 0);
-                    ctx.restore();
-                }
+                ctx.save();
+                ctx.translate(startX + dateIndex * cellWidth + cellWidth/2, startY + hfIds.length * cellHeight + 20);
+                ctx.rotate(-Math.PI/4);
+                ctx.fillText(date, 0, 0);
+                ctx.restore();
             });
         }
 
