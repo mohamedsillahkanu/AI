@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ Variable & Value Rename Tool</title>
+    <title>✏️ Variable Rename Tool</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
@@ -15,45 +15,41 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f1419;
-            color: #e1e8f0;
+            background-color: #f8f9fa;
             line-height: 1.6;
         }
 
         .main-header {
             text-align: center;
             padding: 2rem 0;
-            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
-            color: #e1e8f0;
+            background: linear-gradient(90deg, #9C27B0 0%, #673AB7 100%);
+            color: white;
             margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
         }
 
         .main-header h1 {
             margin-bottom: 0.5rem;
             font-size: 2.5rem;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            color: #e1e8f0;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 1rem;
         }
 
         .upload-section {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background-color: #fff;
             padding: 2rem;
-            border-radius: 15px;
-            border: 2px dashed #3b82f6;
+            border-radius: 10px;
+            border: 2px dashed #9C27B0;
             text-align: center;
             margin: 2rem 0;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .upload-section h3 {
-            color: #60a5fa;
+            color: #9C27B0;
             margin-bottom: 1rem;
         }
 
@@ -61,91 +57,23 @@
             position: relative;
             display: inline-block;
             cursor: pointer;
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: #e1e8f0;
-            padding: 15px 30px;
-            border-radius: 30px;
+            background: linear-gradient(90deg, #9C27B0 0%, #673AB7 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
             border: none;
             font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .file-input:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.6);
-            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(156, 39, 176, 0.4);
         }
 
         .file-input input[type="file"] {
             position: absolute;
             left: -9999px;
-        }
-
-        .progress-container {
-            margin-top: 1.5rem;
-            width: 100%;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 24px;
-            background-color: #374151;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
-            border-radius: 12px;
-            transition: width 0.3s ease;
-            width: 0%;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background-image: linear-gradient(
-                -45deg,
-                rgba(255, 255, 255, .2) 25%,
-                transparent 25%,
-                transparent 50%,
-                rgba(255, 255, 255, .2) 50%,
-                rgba(255, 255, 255, .2) 75%,
-                transparent 75%,
-                transparent
-            );
-            background-size: 30px 30px;
-            animation: progressAnimation 1s linear infinite;
-        }
-
-        @keyframes progressAnimation {
-            0% {
-                background-position: 0 0;
-            }
-            100% {
-                background-position: 30px 0;
-            }
-        }
-
-        .progress-text {
-            text-align: center;
-            margin-top: 0.5rem;
-            font-size: 14px;
-            color: #9ca3af;
-            font-weight: 500;
         }
 
         .stats-container {
@@ -156,71 +84,26 @@
         }
 
         .stats-card {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background-color: #fff;
             padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             text-align: center;
-            border-top: 4px solid #3b82f6;
-            transition: transform 0.2s ease;
-        }
-
-        .stats-card:hover {
-            transform: translateY(-2px);
+            border-top: 4px solid #9C27B0;
         }
 
         .stats-card h3 {
             font-size: 2rem;
-            color: #60a5fa;
+            color: #9C27B0;
             margin-bottom: 0.5rem;
         }
 
-        .rename-tabs {
-            display: flex;
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            border-radius: 15px 15px 0 0;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            margin: 2rem 0 0 0;
-            overflow: hidden;
-        }
-
-        .tab-button {
-            flex: 1;
-            padding: 1.2rem 2rem;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-size: 16px;
-            color: #9ca3af;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        }
-
-        .tab-button.active {
-            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-            color: #e1e8f0;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .tab-button:not(.active):hover {
-            background: rgba(59, 130, 246, 0.1);
-            color: #60a5fa;
-        }
-
         .rename-section {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background-color: #fff;
             padding: 2rem;
-            border-radius: 0 0 15px 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            margin: 0 0 2rem 0;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 2rem 0;
         }
 
         .column-rename-row {
@@ -232,287 +115,150 @@
         }
 
         .column-original {
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+            background-color: #f8f9fa;
             padding: 1rem;
-            border-radius: 10px;
-            border: 1px solid #4b5563;
+            border-radius: 8px;
+            border: 1px solid #ddd;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            color: #e1e8f0;
         }
 
         .column-new input {
             width: 100%;
             padding: 1rem;
-            border: 1px solid #4b5563;
-            border-radius: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
             font-size: 14px;
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-            color: #e1e8f0;
-            transition: all 0.2s ease;
+            transition: border-color 0.2s;
         }
 
         .column-new input:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-
-        .column-new input::placeholder {
-            color: #9ca3af;
+            border-color: #9C27B0;
+            box-shadow: 0 0 0 2px rgba(156, 39, 176, 0.1);
         }
 
         .column-type-badge {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: #e1e8f0;
-            padding: 0.3rem 0.6rem;
-            border-radius: 15px;
+            background-color: #2196F3;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
             font-size: 0.75rem;
             margin-left: 0.5rem;
-            font-weight: 600;
         }
 
         .column-type-badge.numeric {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: #e1e8f0;
+            background-color: #4CAF50;
         }
 
         .column-type-badge.text {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: #e1e8f0;
+            background-color: #FF9800;
         }
 
         .column-type-badge.datetime {
-            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
-            color: #e1e8f0;
-        }
-
-        .value-rename-section {
-            margin: 1rem 0;
-        }
-
-        .column-selector {
-            margin: 1rem 0;
-        }
-
-        .column-selector select {
-            width: 100%;
-            padding: 1rem;
-            border: 1px solid #4b5563;
-            border-radius: 10px;
-            font-size: 14px;
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-            color: #e1e8f0;
-        }
-
-        .value-list {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #4b5563;
-            border-radius: 12px;
-            margin: 1rem 0;
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-        }
-
-        .value-item {
-            display: grid;
-            grid-template-columns: 1fr 1fr auto;
-            gap: 1rem;
-            padding: 1rem;
-            border-bottom: 1px solid #4b5563;
-            align-items: center;
-        }
-
-        .value-item:last-child {
-            border-bottom: none;
-        }
-
-        .value-item:hover {
-            background: rgba(59, 130, 246, 0.1);
-        }
-
-        .value-original {
-            font-family: 'Courier New', monospace;
-            background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%);
-            padding: 0.5rem;
-            border-radius: 6px;
-            border: 1px solid #6b7280;
-            font-weight: 600;
-            color: #e1e8f0;
-        }
-
-        .value-count {
-            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
-            color: #e1e8f0;
-            padding: 0.3rem 0.6rem;
-            border-radius: 15px;
-            font-size: 0.75rem;
-            text-align: center;
-            min-width: 50px;
-            font-weight: 600;
-        }
-
-        .value-new input {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #4b5563;
-            border-radius: 6px;
-            font-size: 14px;
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-            color: #e1e8f0;
-        }
-
-        .value-new input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-        }
-
-        .value-new input::placeholder {
-            color: #9ca3af;
+            background-color: #E91E63;
         }
 
         .btn {
             padding: 12px 24px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
             text-decoration: none;
             display: inline-block;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: #e1e8f0;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            background: linear-gradient(90deg, #9C27B0 0%, #673AB7 100%);
+            color: white;
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
-            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(156, 39, 176, 0.3);
         }
 
         .btn-secondary {
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-            color: #e1e8f0;
-            box-shadow: 0 4px 15px rgba(75, 85, 99, 0.4);
+            background-color: #6c757d;
+            color: white;
         }
 
         .btn-secondary:hover {
-            transform: translateY(-2px);
-            background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: #e1e8f0;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-        }
-
-        .btn-success:hover {
-            transform: translateY(-2px);
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            background-color: #5a6268;
         }
 
         .alert {
             padding: 1rem;
-            border-radius: 10px;
+            border-radius: 8px;
             margin: 1rem 0;
-            font-weight: 500;
         }
 
         .alert-success {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
-            border-left: 4px solid #10b981;
-            color: #34d399;
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
         }
 
         .alert-warning {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.2) 100%);
-            border-left: 4px solid #f59e0b;
-            color: #fbbf24;
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
         }
 
         .alert-error {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
-            border-left: 4px solid #ef4444;
-            color: #f87171;
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
         }
 
         .results-section {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background-color: #fff;
             padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin: 2rem 0;
         }
 
         .rename-summary {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+            background-color: #e8f5e8;
             padding: 1rem;
-            border-radius: 10px;
-            border-left: 4px solid #10b981;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
             margin: 0.5rem 0;
-            color: #e1e8f0;
-        }
-
-        .value-summary {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
-            padding: 1rem;
-            border-radius: 10px;
-            border-left: 4px solid #3b82f6;
-            margin: 0.5rem 0;
-            color: #e1e8f0;
         }
 
         .data-preview {
-            max-height: 600px;
+            max-height: 400px;
             overflow: auto;
             margin: 1rem 0;
-            border: 1px solid #4b5563;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+            border: 1px solid #ddd;
+            border-radius: 8px;
         }
 
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 100%;
-            table-layout: auto;
         }
 
         .data-table th,
         .data-table td {
-            padding: 10px 15px;
+            padding: 8px 12px;
             text-align: left;
-            border-bottom: 1px solid #4b5563;
-            border-right: 1px solid #4b5563;
-            color: #e1e8f0;
-            white-space: nowrap;
-            min-width: 120px;
-        }
-
-        .data-table th:last-child,
-        .data-table td:last-child {
-            border-right: none;
+            border-bottom: 1px solid #ddd;
         }
 
         .data-table th {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background-color: #f8f9fa;
             position: sticky;
             top: 0;
             font-weight: 600;
-            color: #60a5fa;
-            z-index: 10;
         }
 
         .data-table tr:hover {
-            background: rgba(59, 130, 246, 0.1);
+            background-color: #f5f5f5;
         }
 
         .download-section {
@@ -534,14 +280,14 @@
         }
 
         .feature-card {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background-color: #fff;
             padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .feature-card h4 {
-            color: #60a5fa;
+            color: #9C27B0;
             margin-bottom: 1rem;
         }
 
@@ -553,15 +299,15 @@
         }
 
         .comparison-card {
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+            background-color: #f8f9fa;
             padding: 1.5rem;
-            border-radius: 12px;
-            border: 1px solid #4b5563;
+            border-radius: 8px;
+            border: 1px solid #ddd;
         }
 
         .comparison-card h4 {
             margin-bottom: 1rem;
-            color: #e1e8f0;
+            color: #333;
         }
 
         .column-list {
@@ -572,102 +318,9 @@
         .column-item {
             padding: 0.5rem;
             margin: 0.25rem 0;
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            border-radius: 6px;
-            border-left: 3px solid #3b82f6;
-            color: #e1e8f0;
-        }
-
-        .bulk-actions {
-            margin: 1rem 0;
-            padding: 1.5rem;
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-            border-radius: 12px;
-            border: 1px solid #4b5563;
-        }
-
-        .bulk-actions h5 {
-            margin-bottom: 1rem;
-            color: #e1e8f0;
-        }
-
-        .bulk-action-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr auto;
-            gap: 1rem;
-            margin: 0.5rem 0;
-            align-items: center;
-        }
-
-        .bulk-action-row input, .bulk-action-row select {
-            padding: 0.5rem;
-            border: 1px solid #4b5563;
-            border-radius: 6px;
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-            color: #e1e8f0;
-        }
-
-        .bulk-action-row input::placeholder {
-            color: #9ca3af;
-        }
-
-        .data-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 1rem 0;
-            padding: 1rem;
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-            border-radius: 10px;
-        }
-
-        .pagination-controls {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        .pagination-controls button {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: #e1e8f0;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s ease;
-        }
-
-        .pagination-controls button:hover {
-            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-        }
-
-        .pagination-controls button:disabled {
-            background: #6b7280;
-            cursor: not-allowed;
-        }
-
-        .rows-per-page {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .rows-per-page select {
-            padding: 0.5rem;
-            border: 1px solid #4b5563;
-            border-radius: 6px;
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-            color: #e1e8f0;
-        }
-
-        .column-width-indicator {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%);
-            padding: 0.75rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-            border-left: 4px solid #3b82f6;
-            color: #e1e8f0;
+            background-color: #fff;
+            border-radius: 4px;
+            border-left: 3px solid #9C27B0;
         }
 
         @media (max-width: 768px) {
@@ -678,72 +331,24 @@
             .comparison-section {
                 grid-template-columns: 1fr;
             }
-
-            .value-item {
-                grid-template-columns: 1fr;
-                gap: 0.5rem;
-            }
-
-            .bulk-action-row {
-                grid-template-columns: 1fr;
-            }
-
-            .data-controls {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .data-table th,
-            .data-table td {
-                min-width: 100px;
-                padding: 8px 12px;
-            }
-        }
-
-        /* Scrollbar styling for dark theme */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #374151;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         }
     </style>
 </head>
 <body>
     <div class="main-header">
-        <h1>✏️ Variable & Value Rename Tool</h1>
-        <p>Rename column variables and their values in your dataset with dark blue theme</p>
+        <h1>✏️ Variable Rename Tool</h1>
+        <p>Rename column variables in your dataset with ease</p>
     </div>
 
     <div class="container">
         <!-- Upload Section -->
         <div id="uploadSection" class="upload-section">
             <h3>📁 Upload Your Data File</h3>
-            <p>Upload a CSV or Excel file to rename its column variables and values</p>
+            <p>Upload a CSV or Excel file to rename its column variables</p>
             <label class="file-input">
                 Choose File
                 <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
             </label>
-            
-            <!-- Progress Bar -->
-            <div id="progressContainer" class="progress-container hidden">
-                <div class="progress-bar">
-                    <div id="progressFill" class="progress-fill"></div>
-                </div>
-                <div id="progressText" class="progress-text">Uploading...</div>
-            </div>
         </div>
 
         <!-- File Info -->
@@ -771,63 +376,16 @@
         <!-- Alerts -->
         <div id="alertContainer"></div>
 
-        <!-- Rename Section with Tabs -->
-        <div id="renameSection" class="hidden">
-            <div class="rename-tabs">
-                <button class="tab-button active" onclick="switchTab('columns')">📊 Rename Columns</button>
-                <button class="tab-button" onclick="switchTab('values')">🏷️ Rename Values</button>
-            </div>
+        <!-- Rename Section -->
+        <div id="renameSection" class="rename-section hidden">
+            <h3>✏️ Rename Column Variables</h3>
+            <p>Enter new names for the columns you want to rename. Leave blank to keep the original name.</p>
             
-            <div class="rename-section">
-                <!-- Column Renaming Tab -->
-                <div id="columnsTab" class="tab-content active">
-                    <h3>✏️ Rename Column Variables</h3>
-                    <p>Enter new names for the columns you want to rename. Leave blank to keep the original name.</p>
-                    
-                    <div id="columnList"></div>
-                </div>
-
-                <!-- Value Renaming Tab -->
-                <div id="valuesTab" class="tab-content">
-                    <h3>🏷️ Rename Column Values</h3>
-                    <p>Select a column and rename its unique values. This is useful for renaming categories, labels, or codes.</p>
-                    
-                    <div class="column-selector">
-                        <label for="valueColumnSelect"><strong>Select Column:</strong></label>
-                        <select id="valueColumnSelect" onchange="loadColumnValues()">
-                            <option value="">Choose a column to rename its values...</option>
-                        </select>
-                    </div>
-
-                    <div id="valueRenameContainer" class="hidden">
-                        <div class="bulk-actions">
-                            <h5>🚀 Bulk Actions</h5>
-                            <div class="bulk-action-row">
-                                <input type="text" id="findText" placeholder="Find text (e.g., 'old_')">
-                                <input type="text" id="replaceText" placeholder="Replace with (e.g., 'new_')">
-                                <button class="btn btn-secondary" onclick="bulkReplace()">Replace All</button>
-                            </div>
-                            <div class="bulk-action-row">
-                                <select id="transformSelect">
-                                    <option value="">Choose transformation...</option>
-                                    <option value="uppercase">UPPERCASE</option>
-                                    <option value="lowercase">lowercase</option>
-                                    <option value="capitalize">Capitalize First Letter</option>
-                                    <option value="title">Title Case</option>
-                                </select>
-                                <span></span>
-                                <button class="btn btn-secondary" onclick="bulkTransform()">Apply Transform</button>
-                            </div>
-                        </div>
-
-                        <div id="valueList" class="value-list"></div>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 2rem; text-align: center;">
-                    <button class="btn btn-primary" onclick="applyChanges()">✨ Apply All Changes</button>
-                    <button class="btn btn-secondary" onclick="resetFile()" style="margin-left: 1rem;">🔄 Upload New File</button>
-                </div>
+            <div id="columnList"></div>
+            
+            <div style="margin-top: 2rem; text-align: center;">
+                <button class="btn btn-primary" onclick="renameVariables()">✏️ Rename Variables</button>
+                <button class="btn btn-secondary" onclick="resetFile()" style="margin-left: 1rem;">🔄 Upload New File</button>
             </div>
         </div>
 
@@ -835,33 +393,10 @@
         <div id="resultsSection" class="results-section hidden">
             <h3>📊 Rename Results</h3>
             
-            <h4>📋 Summary of Changes</h4>
+            <h4>📋 Rename Summary</h4>
             <div id="renameSummary"></div>
             
-            <h4>📈 Complete Dataset with Renamed Variables & Values</h4>
-            <div class="column-width-indicator">
-                <strong>📊 All Columns Display:</strong> The table below shows ALL columns from your dataset. Use horizontal scroll to view all columns if your dataset is wide. Each column has a minimum width to ensure visibility.
-            </div>
-            
-            <!-- Data Controls -->
-            <div class="data-controls">
-                <div class="rows-per-page">
-                    <label for="rowsPerPage">Rows per page:</label>
-                    <select id="rowsPerPage" onchange="updateDataTable()">
-                        <option value="50">50</option>
-                        <option value="100" selected>100</option>
-                        <option value="250">250</option>
-                        <option value="500">500</option>
-                        <option value="all">All rows</option>
-                    </select>
-                </div>
-                <div class="pagination-controls">
-                    <button id="prevPage" onclick="changePage(-1)">← Previous</button>
-                    <span id="pageInfo">Page 1 of 1</span>
-                    <button id="nextPage" onclick="changePage(1)">Next →</button>
-                </div>
-            </div>
-            
+            <h4>📈 Dataset with Renamed Variables</h4>
             <div class="data-preview">
                 <table class="data-table" id="dataTable"></table>
             </div>
@@ -884,31 +419,22 @@
             </div>
             
             <div style="text-align: center; margin-top: 2rem;">
-                <button class="btn btn-secondary" onclick="backToRename()">✏️ Make More Changes</button>
+                <button class="btn btn-secondary" onclick="backToRename()">✏️ Rename Different Variables</button>
             </div>
         </div>
 
-        <!-- Features Section -->
+        <!-- Features Section (shown when no file uploaded) -->
         <div id="featuresSection">
             <h3>ℹ️ How It Works</h3>
             <div class="features-section">
                 <div class="feature-card">
-                    <h4>Column Renaming:</h4>
+                    <h4>Renaming Process:</h4>
                     <ol>
                         <li><strong>Upload File:</strong> CSV or Excel file with your data</li>
                         <li><strong>View Columns:</strong> See all column names with their data types</li>
                         <li><strong>Enter New Names:</strong> Type new names for columns you want to rename</li>
+                        <li><strong>Validate:</strong> Automatic checking for duplicates and conflicts</li>
                         <li><strong>Apply Changes:</strong> Generate dataset with new column names</li>
-                    </ol>
-                </div>
-                
-                <div class="feature-card">
-                    <h4>Value Renaming:</h4>
-                    <ol>
-                        <li><strong>Select Column:</strong> Choose which column's values to rename</li>
-                        <li><strong>View Unique Values:</strong> See all unique values and their frequencies</li>
-                        <li><strong>Rename Values:</strong> Enter new names for specific values</li>
-                        <li><strong>Bulk Operations:</strong> Use find/replace and transformations</li>
                     </ol>
                 </div>
                 
@@ -916,78 +442,33 @@
                     <h4>Features:</h4>
                     <ul>
                         <li>📊 Visual column type indicators</li>
-                        <li>🏷️ Value frequency counts</li>
-                        <li>🚀 Bulk find/replace operations</li>
-                        <li>📝 Text transformations (case changes)</li>
-                        <li>✅ Duplicate validation</li>
+                        <li>✅ Duplicate name validation</li>
                         <li>🔄 Before/after comparison</li>
-                        <li>📋 Detailed change log</li>
+                        <li>📋 Detailed rename log</li>
                         <li>💾 Excel and CSV downloads</li>
-                        <li>🌐 View complete dataset with pagination</li>
-                        <li>🎨 Dark blue theme for better visibility</li>
-                        <li>📊 All columns guaranteed display</li>
+                    </ul>
+                    <br>
+                    <h4>Supported Formats:</h4>
+                    <ul>
+                        <li>📄 CSV files</li>
+                        <li>📊 Excel files (.xlsx, .xls)</li>
                     </ul>
                 </div>
             </div>
         </div>
     </div>
 
-    <footer style="text-align: center; color: #9ca3af; padding: 2rem; margin-top: 3rem; border-top: 1px solid #4b5563;">
-        <p>✏️ Built with HTML, CSS & JavaScript | Variable & Value Rename Tool v4.1 - Dark Theme with Full Column Display</p>
+    <footer style="text-align: center; color: #666; padding: 2rem; margin-top: 3rem; border-top: 1px solid #ddd;">
+        <p>✏️ Built with HTML, CSS & JavaScript | Variable Rename Tool v2.0</p>
     </footer>
 
     <script>
         let currentData = null;
         let originalColumns = [];
         let renamedData = null;
-        let columnRenameMapping = {};
-        let valueRenameMapping = {};
-        let activeTab = 'columns';
-        let currentPage = 1;
-        let rowsPerPage = 100;
-        let totalPages = 1;
+        let renameMapping = {};
 
         document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-
-        function switchTab(tab) {
-            activeTab = tab;
-            
-            // Update tab buttons
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
-            
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(tab + 'Tab').classList.add('active');
-        }
-
-        function showProgress(text, percentage) {
-            const progressContainer = document.getElementById('progressContainer');
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
-            
-            progressContainer.classList.remove('hidden');
-            progressFill.style.width = percentage + '%';
-            progressText.textContent = text;
-        }
-
-        function updateProgress(percentage) {
-            const progressFill = document.getElementById('progressFill');
-            progressFill.style.width = Math.min(percentage, 100) + '%';
-        }
-
-        function hideProgress() {
-            const progressContainer = document.getElementById('progressContainer');
-            progressContainer.classList.add('hidden');
-            
-            // Reset progress bar
-            setTimeout(() => {
-                const progressFill = document.getElementById('progressFill');
-                const progressText = document.getElementById('progressText');
-                progressFill.style.width = '0%';
-                progressText.textContent = 'Uploading...';
-            }, 300);
-        }
 
         function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -996,74 +477,32 @@
             const fileName = file.name;
             const fileExtension = fileName.split('.').pop().toLowerCase();
 
-            // Show progress bar
-            showProgress('Uploading file...', 10);
-
             if (fileExtension === 'csv') {
-                showProgress('Reading CSV file...', 30);
-                
                 Papa.parse(file, {
                     header: true,
                     skipEmptyLines: true,
                     complete: function(results) {
-                        showProgress('Processing data...', 80);
-                        setTimeout(() => {
-                            processData(results.data, fileName);
-                            hideProgress();
-                        }, 500);
+                        processData(results.data, fileName);
                     },
                     error: function(error) {
-                        hideProgress();
                         showAlert('Error reading CSV file: ' + error.message, 'error');
-                    },
-                    step: function(row, parser) {
-                        // Update progress during parsing for large files
-                        const progress = Math.min(30 + (parser.cursor / file.size) * 40, 70);
-                        updateProgress(progress);
                     }
                 });
             } else if (['xlsx', 'xls'].includes(fileExtension)) {
-                showProgress('Reading Excel file...', 30);
-                
                 const reader = new FileReader();
-                
-                reader.onprogress = function(e) {
-                    if (e.lengthComputable) {
-                        const progress = 30 + (e.loaded / e.total) * 40;
-                        updateProgress(progress);
-                    }
-                };
-                
                 reader.onload = function(e) {
                     try {
-                        showProgress('Processing Excel data...', 80);
-                        
-                        setTimeout(() => {
-                            const data = new Uint8Array(e.target.result);
-                            const workbook = XLSX.read(data, {type: 'array'});
-                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                            
-                            showProgress('Finalizing...', 95);
-                            setTimeout(() => {
-                                processData(jsonData, fileName);
-                                hideProgress();
-                            }, 300);
-                        }, 200);
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        processData(jsonData, fileName);
                     } catch (error) {
-                        hideProgress();
                         showAlert('Error reading Excel file: ' + error.message, 'error');
                     }
                 };
-                
-                reader.onerror = function() {
-                    hideProgress();
-                    showAlert('Error reading file', 'error');
-                };
-                
                 reader.readAsArrayBuffer(file);
             } else {
-                hideProgress();
                 showAlert('Unsupported file type. Please upload CSV or Excel files.', 'error');
                 return;
             }
@@ -1083,11 +522,10 @@
             // Update file info
             updateFileStats(data, fileName);
             
-            // Create interfaces
-            createColumnRenameInterface();
-            populateColumnSelector();
+            // Show rename section
+            createRenameInterface();
             
-            // Show sections
+            // Hide upload section and show file info
             document.getElementById('uploadSection').style.display = 'none';
             document.getElementById('featuresSection').style.display = 'none';
             document.getElementById('fileInfo').classList.remove('hidden');
@@ -1100,6 +538,7 @@
             let numericCount = 0;
             let textCount = 0;
 
+            // Analyze column types
             originalColumns.forEach(col => {
                 if (isNumericColumn(data, col)) {
                     numericCount++;
@@ -1115,7 +554,7 @@
         }
 
         function isNumericColumn(data, columnName) {
-            const sample = data.slice(0, 100);
+            const sample = data.slice(0, 100); // Sample first 100 rows
             let numericCount = 0;
             
             for (let row of sample) {
@@ -1125,13 +564,14 @@
                 }
             }
             
-            return numericCount / sample.length > 0.7;
+            return numericCount / sample.length > 0.7; // 70% numeric threshold
         }
 
         function getColumnType(data, columnName) {
             if (isNumericColumn(data, columnName)) {
                 return { type: 'Numeric', class: 'numeric' };
             } else {
+                // Check if it might be datetime (basic check)
                 const sample = data[0][columnName];
                 if (sample && (sample.includes('/') || sample.includes('-')) && new Date(sample).toString() !== 'Invalid Date') {
                     return { type: 'DateTime', class: 'datetime' };
@@ -1140,7 +580,7 @@
             }
         }
 
-        function createColumnRenameInterface() {
+        function createRenameInterface() {
             const container = document.getElementById('columnList');
             container.innerHTML = '';
 
@@ -1164,167 +604,27 @@
             });
         }
 
-        function populateColumnSelector() {
-            const select = document.getElementById('valueColumnSelect');
-            select.innerHTML = '<option value="">Choose a column to rename its values...</option>';
-            
-            originalColumns.forEach(column => {
-                const option = document.createElement('option');
-                option.value = column;
-                option.textContent = column;
-                select.appendChild(option);
-            });
-        }
+        function renameVariables() {
+            const newNames = {};
+            let hasChanges = false;
 
-        function loadColumnValues() {
-            const selectedColumn = document.getElementById('valueColumnSelect').value;
-            if (!selectedColumn) {
-                document.getElementById('valueRenameContainer').classList.add('hidden');
-                return;
-            }
-
-            // Get unique values and their counts
-            const valueCounts = {};
-            currentData.forEach(row => {
-                const value = row[selectedColumn];
-                const key = value === null || value === undefined ? '[NULL]' : String(value);
-                valueCounts[key] = (valueCounts[key] || 0) + 1;
-            });
-
-            // Sort by frequency (descending)
-            const sortedValues = Object.entries(valueCounts).sort((a, b) => b[1] - a[1]);
-
-            // Create value rename interface
-            const container = document.getElementById('valueList');
-            container.innerHTML = '';
-
-            sortedValues.forEach(([value, count], index) => {
-                const row = document.createElement('div');
-                row.className = 'value-item';
-                
-                row.innerHTML = `
-                    <div class="value-original">${value}</div>
-                    <div class="value-new">
-                        <input type="text" id="value_${selectedColumn}_${index}" 
-                               placeholder="Enter new value for '${value}'" 
-                               data-original="${value}" 
-                               data-column="${selectedColumn}">
-                    </div>
-                    <div class="value-count">${count}</div>
-                `;
-                
-                container.appendChild(row);
-            });
-
-            document.getElementById('valueRenameContainer').classList.remove('hidden');
-        }
-
-        function bulkReplace() {
-            const findText = document.getElementById('findText').value;
-            const replaceText = document.getElementById('replaceText').value;
-            
-            if (!findText) {
-                showAlert('Please enter text to find', 'warning');
-                return;
-            }
-
-            const selectedColumn = document.getElementById('valueColumnSelect').value;
-            const inputs = document.querySelectorAll(`input[data-column="${selectedColumn}"]`);
-            let replacedCount = 0;
-
-            inputs.forEach(input => {
-                const originalValue = input.getAttribute('data-original');
-                if (originalValue.includes(findText)) {
-                    const newValue = originalValue.replace(new RegExp(findText, 'g'), replaceText);
-                    input.value = newValue;
-                    replacedCount++;
-                }
-            });
-
-            showAlert(`✅ Replaced text in ${replacedCount} values`, 'success');
-        }
-
-        function bulkTransform() {
-            const transform = document.getElementById('transformSelect').value;
-            if (!transform) {
-                showAlert('Please select a transformation', 'warning');
-                return;
-            }
-
-            const selectedColumn = document.getElementById('valueColumnSelect').value;
-            const inputs = document.querySelectorAll(`input[data-column="${selectedColumn}"]`);
-            let transformedCount = 0;
-
-            inputs.forEach(input => {
-                const originalValue = input.getAttribute('data-original');
-                let newValue = originalValue;
-
-                switch(transform) {
-                    case 'uppercase':
-                        newValue = originalValue.toUpperCase();
-                        break;
-                    case 'lowercase':
-                        newValue = originalValue.toLowerCase();
-                        break;
-                    case 'capitalize':
-                        newValue = originalValue.charAt(0).toUpperCase() + originalValue.slice(1).toLowerCase();
-                        break;
-                    case 'title':
-                        newValue = originalValue.replace(/\w\S*/g, (txt) => 
-                            txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-                        break;
-                }
-
-                if (newValue !== originalValue) {
-                    input.value = newValue;
-                    transformedCount++;
-                }
-            });
-
-            showAlert(`✅ Transformed ${transformedCount} values`, 'success');
-            document.getElementById('transformSelect').value = '';
-        }
-
-        function applyChanges() {
-            // Collect column renames
-            const columnRenames = {};
-            let hasColumnChanges = false;
-
+            // Collect new names
             originalColumns.forEach((column, index) => {
                 const input = document.getElementById(`rename_${index}`);
                 const newName = input.value.trim();
                 if (newName && newName !== column) {
-                    columnRenames[column] = newName;
-                    hasColumnChanges = true;
+                    newNames[column] = newName;
+                    hasChanges = true;
                 }
             });
 
-            // Collect value renames
-            const valueRenames = {};
-            const selectedColumn = document.getElementById('valueColumnSelect').value;
-            let hasValueChanges = false;
-
-            if (selectedColumn) {
-                const inputs = document.querySelectorAll(`input[data-column="${selectedColumn}"]`);
-                valueRenames[selectedColumn] = {};
-
-                inputs.forEach(input => {
-                    const originalValue = input.getAttribute('data-original');
-                    const newValue = input.value.trim();
-                    if (newValue && newValue !== originalValue) {
-                        valueRenames[selectedColumn][originalValue] = newValue;
-                        hasValueChanges = true;
-                    }
-                });
-            }
-
-            if (!hasColumnChanges && !hasValueChanges) {
-                showAlert('⚠️ No changes to apply. Please rename at least one column or value.', 'warning');
+            if (!hasChanges) {
+                showAlert('⚠️ No column names to change. Please enter at least one new name.', 'warning');
                 return;
             }
 
-            // Validate changes
-            const validation = validateAllChanges(columnRenames, valueRenames);
+            // Validate new names
+            const validation = validateNewNames(newNames);
             
             if (validation.errors.length > 0) {
                 validation.errors.forEach(error => {
@@ -1339,82 +639,54 @@
                 });
             }
 
-            // Apply all changes
+            // Apply renaming
             try {
-                renamedData = applyAllRenames(currentData, columnRenames, valueRenames);
-                columnRenameMapping = columnRenames;
-                valueRenameMapping = valueRenames;
+                renamedData = applyRenaming(currentData, newNames);
+                renameMapping = newNames;
                 
-                // Reset pagination
-                currentPage = 1;
-                totalPages = Math.ceil(renamedData.length / rowsPerPage);
-                
-                showAlert('✅ All changes applied successfully!', 'success');
+                showAlert('✅ Variables renamed successfully!', 'success');
                 showResults();
             } catch (error) {
-                showAlert('❌ Error applying changes: ' + error.message, 'error');
+                showAlert('❌ Error renaming variables: ' + error.message, 'error');
             }
         }
 
-        function validateAllChanges(columnRenames, valueRenames) {
+        function validateNewNames(newNames) {
             const errors = [];
             const warnings = [];
+            const newNameValues = Object.values(newNames);
+            const allFinalNames = [...newNameValues, ...originalColumns.filter(col => !newNames[col])];
 
-            // Validate column renames
-            const newColumnNames = Object.values(columnRenames);
-            const allFinalColumnNames = [...newColumnNames, ...originalColumns.filter(col => !columnRenames[col])];
-
-            // Check for duplicate column names
-            const columnNameCount = {};
-            allFinalColumnNames.forEach(name => {
-                columnNameCount[name] = (columnNameCount[name] || 0) + 1;
+            // Check for duplicates
+            const nameCount = {};
+            allFinalNames.forEach(name => {
+                nameCount[name] = (nameCount[name] || 0) + 1;
             });
 
-            Object.entries(columnNameCount).forEach(([name, count]) => {
+            Object.entries(nameCount).forEach(([name, count]) => {
                 if (count > 1) {
                     errors.push(`Duplicate column name '${name}' found`);
                 }
             });
 
-            // Check for invalid characters in column names
+            // Check for invalid characters
             const invalidChars = ['/', '\\', '?', '*', '[', ']', ':', '<', '>', '|'];
-            Object.entries(columnRenames).forEach(([oldName, newName]) => {
+            Object.entries(newNames).forEach(([oldName, newName]) => {
                 if (invalidChars.some(char => newName.includes(char))) {
                     warnings.push(`Column '${newName}' contains special characters that may cause issues`);
-                }
-            });
-
-            // Validate value renames
-            Object.entries(valueRenames).forEach(([column, renames]) => {
-                const newValues = Object.values(renames);
-                const duplicateValues = newValues.filter((value, index) => newValues.indexOf(value) !== index);
-                
-                if (duplicateValues.length > 0) {
-                    warnings.push(`Column '${column}' will have duplicate values after renaming: ${duplicateValues.join(', ')}`);
                 }
             });
 
             return { errors, warnings };
         }
 
-        function applyAllRenames(data, columnRenames, valueRenames) {
+        function applyRenaming(data, nameMapping) {
             return data.map(row => {
                 const newRow = {};
-                
-                // Process all columns from the original data
-                Object.entries(row).forEach(([originalKey, value]) => {
-                    // Apply column rename (use new name if renamed, otherwise keep original)
-                    const newKey = columnRenames[originalKey] || originalKey;
-                    
-                    // Apply value rename if applicable for this specific column
-                    let newValue = value;
-                    if (valueRenames[originalKey] && valueRenames[originalKey].hasOwnProperty(value)) {
-                        newValue = valueRenames[originalKey][value];
-                    }
-                    
-                    newRow[newKey] = newValue;
+                Object.entries(row).forEach(([key, value]) => {
+                    const newKey = nameMapping[key] || key;
+                    newRow[newKey] = value;
                 });
-                
                 return newRow;
             });
         }
@@ -1428,132 +700,65 @@
             const summaryContainer = document.getElementById('renameSummary');
             summaryContainer.innerHTML = '';
             
-            // Column renames summary
-            if (Object.keys(columnRenameMapping).length > 0) {
-                Object.entries(columnRenameMapping).forEach(([oldName, newName]) => {
-                    const div = document.createElement('div');
-                    div.className = 'rename-summary';
-                    div.innerHTML = `<strong>Column Renamed:</strong> <code>${oldName}</code> → <code>${newName}</code>`;
-                    summaryContainer.appendChild(div);
-                });
-            }
-
-            // Value renames summary
-            Object.entries(valueRenameMapping).forEach(([column, renames]) => {
-                if (Object.keys(renames).length > 0) {
-                    Object.entries(renames).forEach(([oldValue, newValue]) => {
-                        const div = document.createElement('div');
-                        div.className = 'value-summary';
-                        div.innerHTML = `<strong>Value Renamed in '${column}':</strong> <code>${oldValue}</code> → <code>${newValue}</code>`;
-                        summaryContainer.appendChild(div);
-                    });
-                }
+            Object.entries(renameMapping).forEach(([oldName, newName]) => {
+                const div = document.createElement('div');
+                div.className = 'rename-summary';
+                div.innerHTML = `<strong>Renamed:</strong> <code>${oldName}</code> → <code>${newName}</code>`;
+                summaryContainer.appendChild(div);
             });
 
-            // Overall statistics
-            const totalColumnRenames = Object.keys(columnRenameMapping).length;
-            const totalValueRenames = Object.values(valueRenameMapping).reduce((total, renames) => 
-                total + Object.keys(renames).length, 0);
-            const totalUnchangedColumns = originalColumns.length - totalColumnRenames;
+            const totalRenamed = Object.keys(renameMapping).length;
+            const totalUnchanged = originalColumns.length - totalRenamed;
             
             summaryContainer.insertAdjacentHTML('beforeend', `
-                <div style="margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%); border-radius: 8px;">
-                    <p><strong>📊 Summary:</strong></p>
-                    <p><strong>Columns renamed:</strong> ${totalColumnRenames}</p>
-                    <p><strong>Values renamed:</strong> ${totalValueRenames}</p>
-                    <p><strong>Unchanged columns:</strong> ${totalUnchangedColumns}</p>
-                    <p><strong>Total rows:</strong> ${renamedData.length.toLocaleString()}</p>
-                    <p><strong>Total columns:</strong> ${Object.keys(renamedData[0]).length}</p>
-                </div>
+                <p><strong>Total columns renamed:</strong> ${totalRenamed}</p>
+                <p><strong>Unchanged columns:</strong> ${totalUnchanged}</p>
             `);
 
-            // Show data table with pagination
-            updateDataTable();
+            // Show data table
+            createDataTable();
             
             // Show column comparison
             showColumnComparison();
         }
 
-        function updateDataTable() {
+        function createDataTable() {
             const table = document.getElementById('dataTable');
             table.innerHTML = '';
 
             if (!renamedData || renamedData.length === 0) return;
 
-            // Update pagination variables
-            const rowsPerPageSelect = document.getElementById('rowsPerPage');
-            rowsPerPage = rowsPerPageSelect.value === 'all' ? renamedData.length : parseInt(rowsPerPageSelect.value);
-            totalPages = Math.ceil(renamedData.length / rowsPerPage);
-
-            // Ensure current page is valid
-            currentPage = Math.max(1, Math.min(currentPage, totalPages));
-
-            // Calculate data slice
-            const startIndex = (currentPage - 1) * rowsPerPage;
-            const endIndex = Math.min(startIndex + rowsPerPage, renamedData.length);
-            const displayData = renamedData.slice(startIndex, endIndex);
-
-            // Get ALL columns from the first row to ensure complete coverage
-            const allColumns = Object.keys(renamedData[0]);
-            console.log(`Displaying ${allColumns.length} columns:`, allColumns);
-
-            // Create header - absolutely ensure ALL columns are included
+            // Create header
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
             
-            allColumns.forEach(column => {
+            Object.keys(renamedData[0]).forEach(column => {
                 const th = document.createElement('th');
                 th.textContent = column;
-                th.style.minWidth = '120px'; // Ensure minimum width
                 headerRow.appendChild(th);
             });
             
             thead.appendChild(headerRow);
             table.appendChild(thead);
 
-            // Create body with current page data - guarantee ALL columns are shown
+            // Create body with first 100 rows
             const tbody = document.createElement('tbody');
+            const displayData = renamedData.slice(0, 100);
             
             displayData.forEach(row => {
                 const tr = document.createElement('tr');
-                
-                // Iterate through ALL columns to ensure none are missed
-                allColumns.forEach(column => {
+                Object.values(row).forEach(value => {
                     const td = document.createElement('td');
-                    const value = row[column];
-                    td.textContent = value !== undefined && value !== null ? String(value) : '';
-                    td.style.minWidth = '120px'; // Ensure minimum width
+                    td.textContent = value || '';
                     tr.appendChild(td);
                 });
-                
                 tbody.appendChild(tr);
             });
             
             table.appendChild(tbody);
 
-            // Update pagination controls
-            updatePaginationControls();
-            
-            // Log for debugging
-            console.log(`Table created with ${allColumns.length} columns and ${displayData.length} rows`);
-        }
-
-        function updatePaginationControls() {
-            const pageInfo = document.getElementById('pageInfo');
-            const prevBtn = document.getElementById('prevPage');
-            const nextBtn = document.getElementById('nextPage');
-
-            pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${renamedData.length.toLocaleString()} total rows)`;
-            
-            prevBtn.disabled = currentPage <= 1;
-            nextBtn.disabled = currentPage >= totalPages;
-        }
-
-        function changePage(direction) {
-            const newPage = currentPage + direction;
-            if (newPage >= 1 && newPage <= totalPages) {
-                currentPage = newPage;
-                updateDataTable();
+            if (renamedData.length > 100) {
+                table.insertAdjacentHTML('afterend', `<p><em>Showing first 100 rows of ${renamedData.length} total rows</em></p>`);
             }
         }
 
@@ -1568,19 +773,18 @@
             originalColumns.forEach(col => {
                 const div = document.createElement('div');
                 div.className = 'column-item';
-                const status = columnRenameMapping[col] ? '→ Renamed' : '✓ Unchanged';
+                const status = renameMapping[col] ? '→ Renamed' : '✓ Unchanged';
                 div.innerHTML = `<code>${col}</code> ${status}`;
                 originalContainer.appendChild(div);
             });
 
-            // New columns - ensure we show ALL columns from the renamed data
-            const allNewColumns = Object.keys(renamedData[0]);
-            allNewColumns.forEach(col => {
+            // New columns
+            Object.keys(renamedData[0]).forEach(col => {
                 const div = document.createElement('div');
                 div.className = 'column-item';
                 
                 // Find original name
-                const originalName = Object.entries(columnRenameMapping).find(([old, new_]) => new_ === col)?.[0];
+                const originalName = Object.entries(renameMapping).find(([old, new_]) => new_ === col)?.[0];
                 
                 if (originalName) {
                     div.innerHTML = `<code>${col}</code> ← Renamed from <code>${originalName}</code>`;
@@ -1601,7 +805,7 @@
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = `renamed_dataset_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+            a.download = `renamed_variables_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
             a.click();
             
             URL.revokeObjectURL(url);
@@ -1615,45 +819,29 @@
             const ws = XLSX.utils.json_to_sheet(renamedData);
             XLSX.utils.book_append_sheet(wb, ws, 'Renamed_Data');
 
-            // Create change log sheet
-            const logData = [];
-            
-            // Add column renames to log
-            Object.entries(columnRenameMapping).forEach(([oldName, newName]) => {
-                logData.push({
-                    Type: 'Column Rename',
-                    Column: oldName,
-                    Original_Value: oldName,
-                    New_Value: newName,
-                    Change_Date: new Date().toISOString()
-                });
-            });
-
-            // Add value renames to log
-            Object.entries(valueRenameMapping).forEach(([column, renames]) => {
-                Object.entries(renames).forEach(([oldValue, newValue]) => {
-                    logData.push({
-                        Type: 'Value Rename',
-                        Column: column,
-                        Original_Value: oldValue,
-                        New_Value: newValue,
-                        Change_Date: new Date().toISOString()
-                    });
-                });
-            });
+            // Create rename log sheet
+            const logData = Object.entries(renameMapping).map(([oldName, newName]) => ({
+                Original_Name: oldName,
+                New_Name: newName,
+                Rename_Date: new Date().toISOString()
+            }));
             
             if (logData.length > 0) {
                 const logWs = XLSX.utils.json_to_sheet(logData);
-                XLSX.utils.book_append_sheet(wb, logWs, 'Change_Log');
+                XLSX.utils.book_append_sheet(wb, logWs, 'Rename_Log');
             }
 
             // Download file
-            XLSX.writeFile(wb, `renamed_dataset_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
+            XLSX.writeFile(wb, `renamed_variables_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
         }
 
         function backToRename() {
             document.getElementById('resultsSection').classList.add('hidden');
             document.getElementById('renameSection').classList.remove('hidden');
+            
+            // Clear previous rename data
+            renamedData = null;
+            renameMapping = {};
         }
 
         function resetFile() {
@@ -1661,12 +849,7 @@
             currentData = null;
             originalColumns = [];
             renamedData = null;
-            columnRenameMapping = {};
-            valueRenameMapping = {};
-            activeTab = 'columns';
-            currentPage = 1;
-            rowsPerPage = 100;
-            totalPages = 1;
+            renameMapping = {};
             
             // Reset UI
             document.getElementById('uploadSection').style.display = 'block';
@@ -1674,12 +857,8 @@
             document.getElementById('fileInfo').classList.add('hidden');
             document.getElementById('renameSection').classList.add('hidden');
             document.getElementById('resultsSection').classList.add('hidden');
-            document.getElementById('valueRenameContainer').classList.add('hidden');
             document.getElementById('fileInput').value = '';
             document.getElementById('alertContainer').innerHTML = '';
-            
-            // Reset to columns tab
-            switchTab('columns');
         }
 
         function showAlert(message, type) {
