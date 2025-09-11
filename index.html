@@ -24,7 +24,7 @@
             text-align: center;
             padding: 2rem 0;
             background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
-            color: white;
+            color: #e1e8f0;
             margin-bottom: 2rem;
             box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
         }
@@ -33,6 +33,7 @@
             margin-bottom: 0.5rem;
             font-size: 2.5rem;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            color: #e1e8f0;
         }
 
         .container {
@@ -61,7 +62,7 @@
             display: inline-block;
             cursor: pointer;
             background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: white;
+            color: #e1e8f0;
             padding: 15px 30px;
             border-radius: 30px;
             border: none;
@@ -197,7 +198,7 @@
 
         .tab-button.active {
             background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-            color: white;
+            color: #e1e8f0;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
 
@@ -238,6 +239,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            color: #e1e8f0;
         }
 
         .column-new input {
@@ -263,7 +265,7 @@
 
         .column-type-badge {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
+            color: #e1e8f0;
             padding: 0.3rem 0.6rem;
             border-radius: 15px;
             font-size: 0.75rem;
@@ -273,14 +275,17 @@
 
         .column-type-badge.numeric {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #e1e8f0;
         }
 
         .column-type-badge.text {
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #e1e8f0;
         }
 
         .column-type-badge.datetime {
             background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            color: #e1e8f0;
         }
 
         .value-rename-section {
@@ -334,11 +339,12 @@
             border-radius: 6px;
             border: 1px solid #6b7280;
             font-weight: 600;
+            color: #e1e8f0;
         }
 
         .value-count {
             background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
-            color: white;
+            color: #e1e8f0;
             padding: 0.3rem 0.6rem;
             border-radius: 15px;
             font-size: 0.75rem;
@@ -381,7 +387,7 @@
 
         .btn-primary {
             background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: white;
+            color: #e1e8f0;
             box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
         }
 
@@ -393,7 +399,7 @@
 
         .btn-secondary {
             background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-            color: white;
+            color: #e1e8f0;
             box-shadow: 0 4px 15px rgba(75, 85, 99, 0.4);
         }
 
@@ -404,7 +410,7 @@
 
         .btn-success {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
+            color: #e1e8f0;
             box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
         }
 
@@ -452,6 +458,7 @@
             border-radius: 10px;
             border-left: 4px solid #10b981;
             margin: 0.5rem 0;
+            color: #e1e8f0;
         }
 
         .value-summary {
@@ -460,6 +467,7 @@
             border-radius: 10px;
             border-left: 4px solid #3b82f6;
             margin: 0.5rem 0;
+            color: #e1e8f0;
         }
 
         .data-preview {
@@ -474,6 +482,8 @@
         .data-table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 100%;
+            table-layout: auto;
         }
 
         .data-table th,
@@ -481,6 +491,15 @@
             padding: 10px 15px;
             text-align: left;
             border-bottom: 1px solid #4b5563;
+            border-right: 1px solid #4b5563;
+            color: #e1e8f0;
+            white-space: nowrap;
+            min-width: 120px;
+        }
+
+        .data-table th:last-child,
+        .data-table td:last-child {
+            border-right: none;
         }
 
         .data-table th {
@@ -489,6 +508,7 @@
             top: 0;
             font-weight: 600;
             color: #60a5fa;
+            z-index: 10;
         }
 
         .data-table tr:hover {
@@ -555,6 +575,7 @@
             background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
             border-radius: 6px;
             border-left: 3px solid #3b82f6;
+            color: #e1e8f0;
         }
 
         .bulk-actions {
@@ -611,7 +632,7 @@
             border: none;
             border-radius: 6px;
             background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: white;
+            color: #e1e8f0;
             cursor: pointer;
             font-size: 14px;
             transition: all 0.2s ease;
@@ -640,6 +661,15 @@
             color: #e1e8f0;
         }
 
+        .column-width-indicator {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%);
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid #3b82f6;
+            color: #e1e8f0;
+        }
+
         @media (max-width: 768px) {
             .column-rename-row {
                 grid-template-columns: 1fr;
@@ -661,6 +691,12 @@
             .data-controls {
                 flex-direction: column;
                 gap: 1rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                min-width: 100px;
+                padding: 8px 12px;
             }
         }
 
@@ -803,7 +839,9 @@
             <div id="renameSummary"></div>
             
             <h4>📈 Complete Dataset with Renamed Variables & Values</h4>
-            <p style="color: #9ca3af; margin: 0.5rem 0;">The table below shows ALL columns from your dataset. Use horizontal scroll to view all columns if your dataset is wide.</p>
+            <div class="column-width-indicator">
+                <strong>📊 All Columns Display:</strong> The table below shows ALL columns from your dataset. Use horizontal scroll to view all columns if your dataset is wide. Each column has a minimum width to ensure visibility.
+            </div>
             
             <!-- Data Controls -->
             <div class="data-controls">
@@ -887,6 +925,7 @@
                         <li>💾 Excel and CSV downloads</li>
                         <li>🌐 View complete dataset with pagination</li>
                         <li>🎨 Dark blue theme for better visibility</li>
+                        <li>📊 All columns guaranteed display</li>
                     </ul>
                 </div>
             </div>
@@ -894,7 +933,7 @@
     </div>
 
     <footer style="text-align: center; color: #9ca3af; padding: 2rem; margin-top: 3rem; border-top: 1px solid #4b5563;">
-        <p>✏️ Built with HTML, CSS & JavaScript | Variable & Value Rename Tool v4.0 - Dark Theme</p>
+        <p>✏️ Built with HTML, CSS & JavaScript | Variable & Value Rename Tool v4.1 - Dark Theme with Full Column Display</p>
     </footer>
 
     <script>
@@ -1454,30 +1493,39 @@
             const endIndex = Math.min(startIndex + rowsPerPage, renamedData.length);
             const displayData = renamedData.slice(startIndex, endIndex);
 
-            // Create header - make sure to include ALL columns
+            // Get ALL columns from the first row to ensure complete coverage
             const allColumns = Object.keys(renamedData[0]);
+            console.log(`Displaying ${allColumns.length} columns:`, allColumns);
+
+            // Create header - absolutely ensure ALL columns are included
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
             
             allColumns.forEach(column => {
                 const th = document.createElement('th');
                 th.textContent = column;
+                th.style.minWidth = '120px'; // Ensure minimum width
                 headerRow.appendChild(th);
             });
             
             thead.appendChild(headerRow);
             table.appendChild(thead);
 
-            // Create body with current page data - ensure ALL columns are shown
+            // Create body with current page data - guarantee ALL columns are shown
             const tbody = document.createElement('tbody');
             
             displayData.forEach(row => {
                 const tr = document.createElement('tr');
+                
+                // Iterate through ALL columns to ensure none are missed
                 allColumns.forEach(column => {
                     const td = document.createElement('td');
-                    td.textContent = row[column] !== undefined && row[column] !== null ? row[column] : '';
+                    const value = row[column];
+                    td.textContent = value !== undefined && value !== null ? String(value) : '';
+                    td.style.minWidth = '120px'; // Ensure minimum width
                     tr.appendChild(td);
                 });
+                
                 tbody.appendChild(tr);
             });
             
@@ -1485,6 +1533,9 @@
 
             // Update pagination controls
             updatePaginationControls();
+            
+            // Log for debugging
+            console.log(`Table created with ${allColumns.length} columns and ${displayData.length} rows`);
         }
 
         function updatePaginationControls() {
@@ -1522,7 +1573,7 @@
                 originalContainer.appendChild(div);
             });
 
-            // New columns - make sure we show ALL columns from the renamed data
+            // New columns - ensure we show ALL columns from the renamed data
             const allNewColumns = Object.keys(renamedData[0]);
             allNewColumns.forEach(col => {
                 const div = document.createElement('div');
