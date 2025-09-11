@@ -132,90 +132,6 @@
             font-size: 0.85rem;
         }
 
-        .customization-section {
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin: 2rem 0;
-        }
-
-        .customization-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 1rem;
-        }
-
-        .color-section, .text-section {
-            background: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 12px;
-            border-left: 4px solid #4CAF50;
-        }
-
-        .color-section h4, .text-section h4 {
-            color: #2E7D32;
-            margin-bottom: 1rem;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #555;
-        }
-
-        .form-group input[type="text"],
-        .form-group input[type="color"] {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.2s ease;
-        }
-
-        .form-group input[type="text"]:focus,
-        .form-group input[type="color"]:focus {
-            outline: none;
-            border-color: #4CAF50;
-            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
-        }
-
-        .color-preview {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 1rem;
-            margin: 2rem 0;
-            align-items: center;
-        }
-
-        .color-preview-box {
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            font-weight: bold;
-            min-height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .vs-divider {
-            background: #f0f0f0;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            border: 2px dashed #ccc;
-            font-weight: bold;
-            color: #666;
-        }
-
         .btn {
             padding: 12px 24px;
             border: none;
@@ -251,13 +167,6 @@
             background: linear-gradient(135deg, #495057 0%, #343a40 100%);
         }
 
-        .quick-themes {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-
         .alert {
             padding: 1rem;
             border-radius: 8px;
@@ -291,16 +200,27 @@
             margin: 2rem 0;
         }
 
-        .heatmap-container {
+        .chart-container {
             margin: 2rem 0;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
             text-align: center;
+            color: #2E7D32;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
         }
 
         .heatmap-canvas {
-            max-width: 100%;
-            height: auto;
+            width: 100%;
+            height: 400px;
             border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background: white;
         }
 
         .data-table-container {
@@ -355,45 +275,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        .expandable-section {
-            background: #f8f9fa;
-            border: 1px solid #e1e5e9;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-
-        .expandable-header {
-            padding: 1rem;
-            cursor: pointer;
-            font-weight: 600;
-            color: #2E7D32;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .expandable-header:hover {
-            background: rgba(76, 175, 80, 0.05);
-        }
-
-        .expandable-content {
-            padding: 0 1rem 1rem 1rem;
-            border-top: 1px solid #e1e5e9;
-        }
-
-        .feature-highlight {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            margin: 1rem 0;
-            text-align: center;
-        }
-
-        .feature-highlight h4 {
-            margin-bottom: 1rem;
-        }
-
         .download-section {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -405,32 +286,19 @@
             .main-header h1 {
                 font-size: 2rem;
             }
-            
-            .customization-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .color-preview {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-            
-            .quick-themes {
-                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            }
         }
     </style>
 </head>
 <body>
     <div class="main-header">
-        <h1>📊 Health Facility Reporting Status Analysis</h1>
-        <p>Advanced heatmap visualization for health facility reporting patterns by region</p>
+        <h1>Health Facility Reporting Status Analysis</h1>
+        <p>Simplified visualization for health facility reporting patterns by region</p>
     </div>
 
     <div class="container">
         <!-- Upload Section -->
         <div class="upload-section">
-            <h3>📁 Data Upload</h3>
+            <h3>Data Upload</h3>
             <p>Upload your health facility data file (CSV, Excel). Required columns: hf_uid, allout, susp, test, conf, maltreat, Date (or month/year)</p>
             
             <div class="file-input-wrapper">
@@ -473,121 +341,31 @@
                     <p>Overall rate</p>
                 </div>
             </div>
-        </div>
-
-        <!-- Data View -->
-        <div id="dataView" class="expandable-section hidden">
-            <div class="expandable-header" onclick="toggleExpander('dataContent')">
-                🔍 View Data Structure
-                <span>▼</span>
-            </div>
-            <div id="dataContent" class="expandable-content hidden">
-                <h4>Original Columns:</h4>
-                <div id="originalColumns"></div>
-                <h4>Sample Records (First 10 rows):</h4>
-                <div class="data-table-container">
-                    <table class="data-table" id="sampleDataTable"></table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Customization Section -->
-        <div id="customizationSection" class="customization-section hidden">
-            <h3>🎯 Visualization Settings</h3>
             
-            <div class="customization-grid">
-                <div class="color-section">
-                    <h4>🎨 Color Customization</h4>
-                    <div class="form-group">
-                        <label for="noReportColor">No Report Color:</label>
-                        <input type="color" id="noReportColor" value="#FFC0CB">
-                    </div>
-                    <div class="form-group">
-                        <label for="reportColor">Report Color:</label>
-                        <input type="color" id="reportColor" value="#ADD8E6">
-                    </div>
-                </div>
-                
-                <div class="text-section">
-                    <h4>📝 Text Customization</h4>
-                    <div class="form-group">
-                        <label for="mainTitle">Main Title:</label>
-                        <input type="text" id="mainTitle" value="Health Facility Reporting Status by ADM1">
-                    </div>
-                    <div class="form-group">
-                        <label for="legendTitle">Legend Title:</label>
-                        <input type="text" id="legendTitle" value="Reporting status">
-                    </div>
-                    <div class="form-group">
-                        <label for="noReportLabel">No Report Label:</label>
-                        <input type="text" id="noReportLabel" value="Do not report">
-                    </div>
-                    <div class="form-group">
-                        <label for="reportLabel">Report Label:</label>
-                        <input type="text" id="reportLabel" value="Report">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Color Preview -->
-            <h4>🎨 Color Preview</h4>
-            <div class="color-preview">
-                <div id="noReportPreview" class="color-preview-box"></div>
-                <div class="vs-divider">VS</div>
-                <div id="reportPreview" class="color-preview-box"></div>
-            </div>
-
             <!-- Generate Button -->
             <div style="text-align: center; margin: 2rem 0;">
-                <button class="btn btn-primary" onclick="generateAnalysis()">🚀 Generate Customized Analysis</button>
+                <button class="btn btn-primary" onclick="generateAnalysis()">Generate Analysis</button>
             </div>
         </div>
 
         <!-- Results Section -->
-        <div id="resultsSection" class="results-section hidden">
-            <h3>📈 Your Customized Analysis Results</h3>
+        <div id="resultsSection" class="hidden">
+            <div id="chartsContainer"></div>
             
-            <!-- Current Settings -->
-            <div id="currentSettings" class="feature-highlight"></div>
-            
-            <!-- Heatmap -->
-            <div class="heatmap-container">
-                <h4>🗺️ Reporting Status Heatmap</h4>
-                <canvas id="heatmapCanvas" class="heatmap-canvas"></canvas>
-            </div>
-            
-            <!-- Quick Theme Changes -->
-            <h4>🔄 Quick Style Changes</h4>
-            <div class="quick-themes">
-                <button class="btn btn-secondary" onclick="applyQuickTheme('classic')">🌸 Classic Pink/Blue</button>
-                <button class="btn btn-secondary" onclick="applyQuickTheme('heat')">🔥 Heat Colors</button>
-                <button class="btn btn-secondary" onclick="applyQuickTheme('ocean')">🌊 Ocean Theme</button>
-                <button class="btn btn-secondary" onclick="applyQuickTheme('autumn')">🍂 Autumn Theme</button>
-            </div>
-            
-            <!-- Celebration Button -->
-            <div style="text-align: center; margin: 2rem 0;">
-                <button class="btn btn-secondary" onclick="celebrate()">🎉 Celebrate Results!</button>
+            <!-- Regional Statistics -->
+            <div class="results-section">
+                <h3>Regional Statistics</h3>
+                <div class="data-table-container">
+                    <table class="data-table" id="regionalStatsTable"></table>
+                </div>
             </div>
             
             <!-- Download Section -->
-            <h4>💾 Download Results</h4>
-            <div class="download-section">
-                <button class="btn btn-primary" onclick="downloadFullDataset()">📥 Download Full Dataset (CSV)</button>
-                <button class="btn btn-primary" onclick="downloadHeatmap()">📥 Download Heatmap (PNG)</button>
-                <button class="btn btn-primary" onclick="downloadAnalysisReport()">📥 Download Analysis Report</button>
-            </div>
-        </div>
-
-        <!-- Regional Statistics -->
-        <div id="regionalStats" class="expandable-section hidden">
-            <div class="expandable-header" onclick="toggleExpander('regionalStatsContent')">
-                📊 Regional Statistics
-                <span>▼</span>
-            </div>
-            <div id="regionalStatsContent" class="expandable-content hidden">
-                <div class="data-table-container">
-                    <table class="data-table" id="regionalStatsTable"></table>
+            <div class="results-section">
+                <h3>Download Results</h3>
+                <div class="download-section">
+                    <button class="btn btn-primary" onclick="downloadFullDataset()">Download Full Dataset (CSV)</button>
+                    <button class="btn btn-primary" onclick="downloadAnalysisReport()">Download Analysis Report</button>
                 </div>
             </div>
         </div>
@@ -595,7 +373,7 @@
 
     <!-- Footer -->
     <div style="text-align: center; color: #666; padding: 2rem; margin-top: 3rem; border-top: 1px solid #e1e5e9;">
-        <p>📊 Health Facility Reporting Status Analysis Tool | Built with HTML, CSS & JavaScript</p>
+        <p>Health Facility Reporting Status Analysis Tool | Built with HTML, CSS & JavaScript</p>
     </div>
 
     <script>
@@ -606,15 +384,6 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-            
-            // Add event listeners for color preview
-            document.getElementById('noReportColor').addEventListener('change', updateColorPreview);
-            document.getElementById('reportColor').addEventListener('change', updateColorPreview);
-            document.getElementById('noReportLabel').addEventListener('input', updateColorPreview);
-            document.getElementById('reportLabel').addEventListener('input', updateColorPreview);
-            
-            // Initial color preview
-            updateColorPreview();
         });
 
         function showAlert(message, type = 'info') {
@@ -691,16 +460,13 @@
                 return;
             }
 
-            showAlert('✅ File uploaded successfully!', 'success');
+            showAlert('File uploaded successfully!', 'success');
             
             // Update UI
             updateDataSummary();
-            showDataStructure();
             
             // Show sections
             document.getElementById('dataSummary').classList.remove('hidden');
-            document.getElementById('dataView').classList.remove('hidden');
-            document.getElementById('customizationSection').classList.remove('hidden');
         }
 
         function validateData(data) {
@@ -717,7 +483,7 @@
             if (!availableCols.includes('Date')) {
                 if (availableCols.includes('month') && availableCols.includes('year')) {
                     try {
-                        showAlert('🔄 Creating Date column from month and year...', 'info');
+                        showAlert('Creating Date column from month and year...', 'info');
                         data.forEach(row => {
                             const month = parseInt(row.month);
                             const year = parseInt(row.year);
@@ -727,31 +493,31 @@
                                 throw new Error('Invalid month or year values');
                             }
                         });
-                        showAlert('✅ Successfully created Date column', 'success');
+                        showAlert('Successfully created Date column', 'success');
                     } catch (error) {
-                        showAlert('❌ Error creating Date column: ' + error.message, 'error');
+                        showAlert('Error creating Date column: ' + error.message, 'error');
                         return false;
                     }
                 } else if (availableCols.includes('year_mon')) {
                     try {
-                        showAlert('🔄 Using year_mon as Date column...', 'info');
+                        showAlert('Using year_mon as Date column...', 'info');
                         data.forEach(row => {
                             row.Date = row.year_mon.toString();
                         });
-                        showAlert('✅ Successfully used year_mon as Date column', 'success');
+                        showAlert('Successfully used year_mon as Date column', 'success');
                     } catch (error) {
-                        showAlert('❌ Error using year_mon as Date: ' + error.message, 'error');
+                        showAlert('Error using year_mon as Date: ' + error.message, 'error');
                         return false;
                     }
                 } else {
-                    showAlert('❌ No Date, month/year, or year_mon columns found', 'error');
+                    showAlert('No Date, month/year, or year_mon columns found', 'error');
                     return false;
                 }
             }
             
             // Create ADM1 regions if needed
             if (!availableCols.includes('adm1')) {
-                showAlert('🔄 Creating artificial ADM1 regions...', 'info');
+                showAlert('Creating artificial ADM1 regions...', 'info');
                 const uniqueHFs = [...new Set(data.map(row => row.hf_uid))];
                 const nGroups = Math.min(16, Math.max(4, Math.floor(uniqueHFs.length / 10)));
                 const groupSize = Math.ceil(uniqueHFs.length / nGroups);
@@ -766,7 +532,7 @@
                     row.adm1 = adm1Mapping[row.hf_uid];
                 });
                 
-                showAlert(`✅ Created ${nGroups} artificial ADM1 regions`, 'success');
+                showAlert(`Created ${nGroups} artificial ADM1 regions`, 'success');
             }
             
             // Convert numeric columns
@@ -804,112 +570,29 @@
             document.getElementById('reportingRate').textContent = `${reportingRate}%`;
         }
 
-        function showDataStructure() {
-            if (!processedData) return;
-            
-            const originalColumns = Object.keys(processedData[0]);
-            document.getElementById('originalColumns').innerHTML = originalColumns.map(col => 
-                `<span style="background: #e3f2fd; padding: 0.25rem 0.5rem; border-radius: 4px; margin: 0.25rem; display: inline-block;">${col}</span>`
-            ).join('');
-            
-            // Show sample data
-            const sampleTable = document.getElementById('sampleDataTable');
-            sampleTable.innerHTML = '';
-            
-            if (processedData.length > 0) {
-                // Create header
-                const thead = document.createElement('thead');
-                const headerRow = document.createElement('tr');
-                const displayCols = ['hf_uid', 'adm1', 'Date', 'allout', 'susp', 'test', 'conf', 'maltreat'];
-                const availableCols = displayCols.filter(col => originalColumns.includes(col));
-                
-                availableCols.forEach(col => {
-                    const th = document.createElement('th');
-                    th.textContent = col;
-                    headerRow.appendChild(th);
-                });
-                thead.appendChild(headerRow);
-                sampleTable.appendChild(thead);
-                
-                // Create body
-                const tbody = document.createElement('tbody');
-                processedData.slice(0, 10).forEach(row => {
-                    const tr = document.createElement('tr');
-                    availableCols.forEach(col => {
-                        const td = document.createElement('td');
-                        td.textContent = row[col] || '';
-                        tr.appendChild(td);
-                    });
-                    tbody.appendChild(tr);
-                });
-                sampleTable.appendChild(tbody);
-            }
-        }
-
-        function updateColorPreview() {
-            const noReportColor = document.getElementById('noReportColor').value;
-            const reportColor = document.getElementById('reportColor').value;
-            const noReportLabel = document.getElementById('noReportLabel').value;
-            const reportLabel = document.getElementById('reportLabel').value;
-            
-            const noReportPreview = document.getElementById('noReportPreview');
-            const reportPreview = document.getElementById('reportPreview');
-            
-            noReportPreview.style.backgroundColor = noReportColor;
-            noReportPreview.style.color = getContrastColor(noReportColor);
-            noReportPreview.textContent = noReportLabel;
-            
-            reportPreview.style.backgroundColor = reportColor;
-            reportPreview.style.color = getContrastColor(reportColor);
-            reportPreview.textContent = reportLabel;
-        }
-
-        function getContrastColor(hexColor) {
-            // Convert hex to RGB
-            const r = parseInt(hexColor.slice(1, 3), 16);
-            const g = parseInt(hexColor.slice(3, 5), 16);
-            const b = parseInt(hexColor.slice(5, 7), 16);
-            
-            // Calculate luminance
-            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-            
-            // Return black or white based on luminance
-            return luminance > 0.5 ? '#000000' : '#ffffff';
-        }
-
         function generateAnalysis() {
             if (!processedData) {
                 showAlert('Please upload data first', 'error');
                 return;
             }
             
-            showAlert('🔄 Generating customized analysis...', 'info');
+            showAlert('Generating analysis...', 'info');
             
             try {
-                // Get settings
-                const settings = {
-                    noReportColor: document.getElementById('noReportColor').value,
-                    reportColor: document.getElementById('reportColor').value,
-                    mainTitle: document.getElementById('mainTitle').value,
-                    legendTitle: document.getElementById('legendTitle').value,
-                    noReportLabel: document.getElementById('noReportLabel').value,
-                    reportLabel: document.getElementById('reportLabel').value
-                };
-                
                 // Process data for analysis
-                analysisResults = createAnalysisResults(processedData, settings);
+                analysisResults = createAnalysisResults(processedData);
                 
                 // Show results
-                showResults(settings);
+                showResults();
                 
-                showAlert('✅ Customized analysis completed!', 'success');
+                showAlert('Analysis completed!', 'success');
                 
             } catch (error) {
-                showAlert('❌ Error generating analysis: ' + error.message, 'error');
+                showAlert('Error generating analysis: ' + error.message, 'error');
             }
         }
 
-        function createAnalysisResults(data, settings) {
+        function createAnalysisResults(data) {
             const selectedVariables = ['allout', 'susp', 'test', 'conf', 'maltreat'];
             
             // Add status to each row
@@ -953,148 +636,144 @@
             return {
                 dataWithStatus: dataWithStatus,
                 adm1Groups: adm1Groups,
-                regionalStats: regionalStats,
-                settings: settings
+                regionalStats: regionalStats
             };
         }
 
-        function showResults(settings) {
-            // Show current settings
-            const currentSettingsDiv = document.getElementById('currentSettings');
-            currentSettingsDiv.innerHTML = `
-                <h4>Analysis Results</h4>
-                <p><strong>Title:</strong> ${settings.mainTitle}</p>
-                <p><strong>Data sorted by:</strong> Total reports per facility (descending)</p>
-            `;
-            
-            // Generate heatmap
-            generateHeatmap(analysisResults, settings);
+        function showResults() {
+            // Generate charts for each region
+            generateRegionalCharts();
             
             // Show regional statistics
             showRegionalStatistics();
             
             // Show results section
             document.getElementById('resultsSection').classList.remove('hidden');
-            document.getElementById('regionalStats').classList.remove('hidden');
         }
 
-        function generateHeatmap(results, settings) {
-            const canvas = document.getElementById('heatmapCanvas');
-            const ctx = canvas.getContext('2d');
+        function generateRegionalCharts() {
+            const chartsContainer = document.getElementById('chartsContainer');
+            chartsContainer.innerHTML = '';
             
-            // Set canvas size
-            canvas.width = 1200;
-            canvas.height = 800;
-            
-            // Clear canvas
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw title
-            ctx.fillStyle = '#333333';
-            ctx.font = 'bold 24px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(settings.mainTitle, canvas.width / 2, 40);
-            
-            // Get ADM1 groups
-            const adm1Groups = Object.keys(results.adm1Groups);
-            const gridCols = 4;
-            const gridRows = Math.ceil(adm1Groups.length / gridCols);
-            
-            const cellWidth = (canvas.width - 100) / gridCols;
-            const cellHeight = (canvas.height - 150) / gridRows;
-            
-            // Draw each ADM1 heatmap
-            adm1Groups.forEach((adm1, index) => {
-                const row = Math.floor(index / gridCols);
-                const col = index % gridCols;
+            Object.keys(analysisResults.adm1Groups).forEach(adm1 => {
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'chart-container';
                 
-                const x = 50 + col * cellWidth;
-                const y = 80 + row * cellHeight;
+                const title = document.createElement('div');
+                title.className = 'chart-title';
+                title.textContent = `${adm1} - Reporting Status`;
+                chartContainer.appendChild(title);
                 
-                drawADM1Heatmap(ctx, results.adm1Groups[adm1], adm1, x, y, cellWidth - 20, cellHeight - 20, settings);
+                const canvas = document.createElement('canvas');
+                canvas.className = 'heatmap-canvas';
+                canvas.id = `chart-${adm1}`;
+                chartContainer.appendChild(canvas);
+                
+                chartsContainer.appendChild(chartContainer);
+                
+                // Generate heatmap for this region
+                generateRegionHeatmap(adm1, canvas);
             });
-            
-            // Draw legend
-            drawLegend(ctx, settings, canvas.width - 250, 80);
         }
 
-        function drawADM1Heatmap(ctx, data, adm1Name, x, y, width, height, settings) {
+        function generateRegionHeatmap(adm1, canvas) {
+            const data = analysisResults.adm1Groups[adm1];
+            
             // Group by HF and Date
             const hfData = {};
             data.forEach(row => {
                 if (!hfData[row.hf_uid]) {
                     hfData[row.hf_uid] = {};
                 }
-                hfData[row.hf_uid][row.Date] = row.status;
+                // Ensure date is in YYYY-MM format
+                let formattedDate = row.Date;
+                if (formattedDate && formattedDate.length > 7) {
+                    formattedDate = formattedDate.substring(0, 7); // Take only YYYY-MM part
+                }
+                hfData[row.hf_uid][formattedDate] = row.status;
             });
             
             const hfIds = Object.keys(hfData);
-            const dates = [...new Set(data.map(row => row.Date))].sort();
+            const dates = [...new Set(data.map(row => {
+                let formattedDate = row.Date;
+                if (formattedDate && formattedDate.length > 7) {
+                    formattedDate = formattedDate.substring(0, 7);
+                }
+                return formattedDate;
+            }))].sort();
             
             if (hfIds.length === 0 || dates.length === 0) return;
             
-            // Draw title
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = 1200;
+            canvas.height = Math.max(450, hfIds.length * 20 + 150);
+            
+            // Clear canvas with white background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw legend (right after title space)
+            const legendY = 50;
+            const legendCenterX = canvas.width / 2;
+            
             ctx.fillStyle = '#333333';
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(adm1Name, x + width / 2, y - 5);
+            ctx.fillText('Legend:', legendCenterX, legendY);
             
-            // Calculate cell dimensions
-            const cellWidth = Math.max(2, width / dates.length);
-            const cellHeight = Math.max(2, (height - 20) / hfIds.length);
+            // No Report legend item
+            ctx.fillStyle = '#f44336';
+            ctx.fillRect(legendCenterX - 80, legendY + 10, 20, 15);
+            ctx.fillStyle = '#333333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('No Report', legendCenterX - 55, legendY + 22);
+            
+            // Report legend item
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(legendCenterX + 10, legendY + 10, 20, 15);
+            ctx.fillText('Report', legendCenterX + 35, legendY + 22);
+            
+            // Calculate dimensions for heatmap
+            const startX = 150;
+            const startY = 100;
+            const cellWidth = Math.max(10, (canvas.width - 200) / dates.length);
+            const cellHeight = Math.max(15, (canvas.height - 150) / hfIds.length);
             
             // Draw heatmap
             hfIds.forEach((hfId, hfIndex) => {
                 dates.forEach((date, dateIndex) => {
                     const status = hfData[hfId][date] || 0;
-                    const cellX = x + dateIndex * cellWidth;
-                    const cellY = y + 20 + hfIndex * cellHeight;
+                    const cellX = startX + dateIndex * cellWidth;
+                    const cellY = startY + hfIndex * cellHeight;
                     
-                    ctx.fillStyle = status === 1 ? settings.reportColor : settings.noReportColor;
+                    ctx.fillStyle = status === 1 ? '#4CAF50' : '#f44336';
                     ctx.fillRect(cellX, cellY, cellWidth - 1, cellHeight - 1);
                 });
+                
+                // Draw HF label (y-axis label only, no ticks)
+                ctx.fillStyle = '#333333';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(hfId.substring(0, 15), startX - 10, startY + hfIndex * cellHeight + cellHeight/2 + 4);
             });
             
-            // Draw border
-            ctx.strokeStyle = '#cccccc';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x, y + 20, width, height - 20);
-        }
-
-        function drawLegend(ctx, settings, x, y) {
-            const legendWidth = 180;
-            const legendHeight = 80;
-            
-            // Draw legend background
-            ctx.fillStyle = '#f8f9fa';
-            ctx.fillRect(x, y, legendWidth, legendHeight);
-            ctx.strokeStyle = '#cccccc';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x, y, legendWidth, legendHeight);
-            
-            // Draw legend title
-            ctx.fillStyle = '#333333';
-            ctx.font = 'bold 14px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(settings.legendTitle, x + legendWidth / 2, y + 20);
-            
-            // Draw legend items
-            const itemY = y + 35;
-            
-            // No report
-            ctx.fillStyle = settings.noReportColor;
-            ctx.fillRect(x + 10, itemY, 20, 15);
+            // Draw x-axis date labels in YYYY-MM format (every few dates to avoid overlap)
+            const dateStep = Math.max(1, Math.floor(dates.length / 10));
             ctx.fillStyle = '#333333';
             ctx.font = '12px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(settings.noReportLabel, x + 35, itemY + 12);
-            
-            // Report
-            ctx.fillStyle = settings.reportColor;
-            ctx.fillRect(x + 10, itemY + 25, 20, 15);
-            ctx.fillStyle = '#333333';
-            ctx.fillText(settings.reportLabel, x + 35, itemY + 37);
+            ctx.textAlign = 'center';
+            dates.forEach((date, dateIndex) => {
+                if (dateIndex % dateStep === 0) {
+                    ctx.save();
+                    ctx.translate(startX + dateIndex * cellWidth + cellWidth/2, startY + hfIds.length * cellHeight + 20);
+                    ctx.rotate(-Math.PI/4);
+                    ctx.fillText(date, 0, 0);
+                    ctx.restore();
+                }
+            });
         }
 
         function showRegionalStatistics() {
@@ -1141,95 +820,6 @@
             table.appendChild(tbody);
         }
 
-        function applyQuickTheme(theme) {
-            const themes = {
-                classic: {
-                    noReportColor: '#FFC0CB',
-                    reportColor: '#ADD8E6',
-                    mainTitle: 'Health Facility Reporting Status by ADM1',
-                    legendTitle: 'Reporting status',
-                    noReportLabel: 'Do not report',
-                    reportLabel: 'Report'
-                },
-                heat: {
-                    noReportColor: '#FF6B6B',
-                    reportColor: '#4ECDC4',
-                    mainTitle: 'Facility Reporting Heat Map',
-                    legendTitle: 'Reporting Status',
-                    noReportLabel: 'Do not report',
-                    reportLabel: 'Report'
-                },
-                ocean: {
-                    noReportColor: '#E8F4FD',
-                    reportColor: '#1E3A8A',
-                    mainTitle: 'Reporting Ocean: Facility Status Depths',
-                    legendTitle: 'Reporting Status',
-                    noReportLabel: 'Do not report',
-                    reportLabel: 'Report'
-                },
-                autumn: {
-                    noReportColor: '#FFF8DC',
-                    reportColor: '#D2691E',
-                    mainTitle: 'Autumn Reporting Landscape',
-                    legendTitle: 'Reporting Status',
-                    noReportLabel: 'Do not report',
-                    reportLabel: 'Report'
-                }
-            };
-            
-            const settings = themes[theme];
-            if (!settings) return;
-            
-            // Update form inputs
-            document.getElementById('noReportColor').value = settings.noReportColor;
-            document.getElementById('reportColor').value = settings.reportColor;
-            document.getElementById('mainTitle').value = settings.mainTitle;
-            document.getElementById('legendTitle').value = settings.legendTitle;
-            document.getElementById('noReportLabel').value = settings.noReportLabel;
-            document.getElementById('reportLabel').value = settings.reportLabel;
-            
-            // Update preview
-            updateColorPreview();
-            
-            // Regenerate analysis
-            if (analysisResults) {
-                showAlert('🔄 Applying new theme...', 'info');
-                analysisResults.settings = settings;
-                showResults(settings);
-                showAlert('✅ Theme applied successfully!', 'success');
-            }
-        }
-
-        function celebrate() {
-            // Simple celebration animation
-            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
-            const container = document.body;
-            
-            for (let i = 0; i < 20; i++) {
-                setTimeout(() => {
-                    const confetti = document.createElement('div');
-                    confetti.style.position = 'fixed';
-                    confetti.style.left = Math.random() * 100 + 'vw';
-                    confetti.style.top = '-10px';
-                    confetti.style.width = '10px';
-                    confetti.style.height = '10px';
-                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                    confetti.style.borderRadius = '50%';
-                    confetti.style.zIndex = '9999';
-                    confetti.style.pointerEvents = 'none';
-                    confetti.style.animation = 'fall 3s linear forwards';
-                    
-                    container.appendChild(confetti);
-                    
-                    setTimeout(() => {
-                        container.removeChild(confetti);
-                    }, 3000);
-                }, i * 100);
-            }
-            
-            showAlert('🎉 Congratulations on your analysis!', 'success');
-        }
-
         function downloadFullDataset() {
             if (!analysisResults) {
                 showAlert('No data to download', 'error');
@@ -1239,16 +829,7 @@
             const dataWithStatus = analysisResults.dataWithStatus;
             const csv = convertToCSV(dataWithStatus);
             downloadFile(csv, `full_dataset_with_status_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`, 'text/csv');
-            showAlert('✅ Dataset downloaded successfully!', 'success');
-        }
-
-        function downloadHeatmap() {
-            const canvas = document.getElementById('heatmapCanvas');
-            const link = document.createElement('a');
-            link.download = `heatmap_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-            showAlert('✅ Heatmap downloaded successfully!', 'success');
+            showAlert('Dataset downloaded successfully!', 'success');
         }
 
         function downloadAnalysisReport() {
@@ -1269,7 +850,7 @@
             });
             
             downloadFile(report, `analysis_report_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`, 'text/plain');
-            showAlert('✅ Analysis report downloaded successfully!', 'success');
+            showAlert('Analysis report downloaded successfully!', 'success');
         }
 
         function convertToCSV(data) {
@@ -1296,36 +877,6 @@
             link.click();
             URL.revokeObjectURL(url);
         }
-
-        function toggleExpander(contentId) {
-            const content = document.getElementById(contentId);
-            const header = content.previousElementSibling;
-            const arrow = header.querySelector('span');
-            
-            if (content.classList.contains('hidden')) {
-                content.classList.remove('hidden');
-                arrow.textContent = '▲';
-            } else {
-                content.classList.add('hidden');
-                arrow.textContent = '▼';
-            }
-        }
-
-        // Add CSS animation for confetti
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fall {
-                0% {
-                    transform: translateY(-10px) rotate(0deg);
-                    opacity: 1;
-                }
-                100% {
-                    transform: translateY(100vh) rotate(360deg);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
     </script>
 </body>
 </html>
