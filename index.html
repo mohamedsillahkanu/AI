@@ -1,756 +1,4 @@
-<script>
-        let currentData = null;
-        let originalColumns = [];
-        let renamedData = null;
-        let columnRenameMapping = {};
-        let valueRenameMapping = {};
-        let activeTab = 'columns';
-        let currentPage = 1;
-        let rowsPerPage = 100;
-        let totalPages = 1;
-
-        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-
-        function switchTab(tab) {
-            activeTab = tab;
-            
-            // Update tab buttons
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
-            
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(tab + 'Tab').classList.add('active');
-        }
-
-        function showProgress(text, percentage) {
-            const progressContainer = document.getElementById('progressContainer');
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
-            
-            progressContainer.classList.remove('hidden');
-            progressFill.style.width = percentage + '%';
-            progressText.textContent = text;
-        }
-
-        function updateProgress(percentage) {
-            const progressFill = document.getElementById('progressFill');
-            progressFill.style.width = Math.min(percentage, 100) + '%';
-        }
-
-        function hideProgress() {
-            const progressContainer = document.getElementById('progressContainer');
-            progressContainer.classList.add('hidden');
-            
-            // Reset progress bar
-            setTimeout(() => {
-                const progressFill = document.getElementById('progressFill');
-                const progressText = document.getElementById('progressText');
-                progressFill.style.width = '0%';
-                progressText.textContent = 'Uploading...';
-            }, 300);
-        }
-
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const fileName = file.name;
-            const fileExtension = fileName.split('.').pop().toLowerCase();
-
-            // Show progress bar
-            showProgress('Uploading file...', 10);
-
-            if (fileExtension === 'csv') {
-                showProgress('Reading CSV file...', 30);
-                
-                Papa.parse(file, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: function(results) {
-                        showProgress('Processing data...', 80);
-                        setTimeout(() => {
-                            processData(results.data, fileName);
-                            hideProgress();
-                        }, 500);
-                    },
-                    error: function(error) {
-                        hideProgress();
-                        showAlert('Error reading CSV file: ' + error.message, 'error');
-                    },
-                    step: function(row, parser) {
-                        // Update progress during parsing for large files
-                        const progress = Math.min(30 + (parser.cursor / file.size) * 40, 70);
-                        updateProgress(progress);
-                    }
-                });
-            } else if (['xlsx', 'xls'].includes(fileExtension)) {
-                showProgress('Reading Excel file...', 30);
-                
-                const reader = new FileReader();
-                
-                reader.onprogress = function(e) {
-                    if (e.lengthComputable) {
-                        const progress = 30 + (e.loaded / e.total) * 40;
-                        updateProgress(progress);
-                    }
-                };
-                
-                reader.onload = function(e) {
-                    try {
-                        showProgress('Processing Excel data...', 80);
-                        
-                        setTimeout(() => {
-                            const data = new Uint8Array(e.target.result);
-                            const workbook = XLSX.read(data, {type: 'array'});
-                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                            
-                            showProgress('Finalizing...', 95);
-                            setTimeout(() => {
-                                processData(jsonData, fileName);
-                                hideProgress();
-                            }, 300);
-                        }, 200);
-                    } catch (error) {
-                        hideProgress();
-                        showAlert('Error reading Excel file: ' + error.message, 'error');
-                    }
-                };
-                
-                reader.onerror = function() {
-                    hideProgress();
-                    showAlert('Error reading file', 'error');
-                };
-                
-                reader.readAsArrayBuffer(file);
-            } else {
-                hideProgress();
-                showAlert('Unsupported file type. Please upload CSV or Excel files.', 'error');
-                return;
-            }
-        }
-
-        function processData(data, fileName) {
-            if (!data || data.length === 0) {
-                showAlert('The file appears to be empty or invalid.', 'error');
-                return;
-            }
-
-            currentData = data;
-            originalColumns = Object.keys(data[0]);
-            
-            showAlert('✅ File uploaded successfully!', 'success');
-            
-            // Update file info
-            updateFileStats(data, fileName);
-            
-            // Create interfaces
-            createColumnRenameInterface();
-            populateColumnSelector();
-            
-            // Show sections
-            document.getElementById('uploadSection').style.display = 'none';
-            document.getElementById('featuresSection').style.display = 'none';
-            document.getElementById('fileInfo').classList.remove('hidden');
-            document.getElementById('renameSection').classList.remove('hidden');
-        }
-
-        function updateFileStats(data, fileName) {
-            const rowCount = data.length;
-            const colCount = originalColumns.length;
-            let numericCount = 0;
-            let textCount = 0;
-
-            originalColumns.forEach(col => {
-                if (isNumericColumn(data, col)) {
-                    numericCount++;
-                } else {
-                    textCount++;
-                }
-            });
-
-            document.getElementById('rowCount').textContent = rowCount.toLocaleString();
-            document.getElementById('colCount').textContent = colCount;
-            document.getElementById('numericCount').textContent = numericCount;
-            document.getElementById('textCount').textContent = textCount;
-        }
-
-        function isNumericColumn(data, columnName) {
-            const sample = data.slice(0, 100);
-            let numericCount = 0;
-            
-            for (let row of sample) {
-                const value = row[columnName];
-                if (value !== null && value !== undefined && value !== '' && !isNaN(Number(value))) {
-                    numericCount++;
-                }
-            }
-            
-            return numericCount / sample.length > 0.7;
-        }
-
-        function getColumnType(data, columnName) {
-            if (isNumericColumn(data, columnName)) {
-                return { type: 'Numeric', class: 'numeric' };
-            } else {
-                const sample = data[0][columnName];
-                if (sample && (sample.includes('/') || sample.includes('-')) && new Date(sample).toString() !== 'Invalid Date') {
-                    return { type: 'DateTime', class: 'datetime' };
-                }
-                return { type: 'Text', class: 'text' };
-            }
-        }
-
-        function createColumnRenameInterface() {
-            const container = document.getElementById('columnList');
-            container.innerHTML = '';
-
-            originalColumns.forEach((column, index) => {
-                const columnType = getColumnType(currentData, column);
-                
-                const row = document.createElement('div');
-                row.className = 'column-rename-row';
-                
-                row.innerHTML = `
-                    <div class="column-original">
-                        <strong>${column}</strong>
-                        <span class="column-type-badge ${columnType.class}">${columnType.type}</span>
-                    </div>
-                    <div class="column-new">
-                        <input type="text" id="rename_${index}" placeholder="Enter new name for '${column}'">
-                    </div>
-                `;
-                
-                container.appendChild(row);
-            });
-        }
-
-        function populateColumnSelector() {
-            const select = document.getElementById('valueColumnSelect');
-            select.innerHTML = '<option value="">Choose a column to rename its values...</option>';
-            
-            originalColumns.forEach(column => {
-                const option = document.createElement('option');
-                option.value = column;
-                option.textContent = column;
-                select.appendChild(option);
-            });
-        }
-
-        function loadColumnValues() {
-            const selectedColumn = document.getElementById('valueColumnSelect').value;
-            if (!selectedColumn) {
-                document.getElementById('valueRenameContainer').classList.add('hidden');
-                return;
-            }
-
-            // Get unique values and their counts
-            const valueCounts = {};
-            currentData.forEach(row => {
-                const value = row[selectedColumn];
-                const key = value === null || value === undefined ? '[NULL]' : String(value);
-                valueCounts[key] = (valueCounts[key] || 0) + 1;
-            });
-
-            // Sort by frequency (descending)
-            const sortedValues = Object.entries(valueCounts).sort((a, b) => b[1] - a[1]);
-
-            // Create value rename interface
-            const container = document.getElementById('valueList');
-            container.innerHTML = '';
-
-            sortedValues.forEach(([value, count], index) => {
-                const row = document.createElement('div');
-                row.className = 'value-item';
-                
-                row.innerHTML = `
-                    <div class="value-original">${value}</div>
-                    <div class="value-new">
-                        <input type="text" id="value_${selectedColumn}_${index}" 
-                               placeholder="Enter new value for '${value}'" 
-                               data-original="${value}" 
-                               data-column="${selectedColumn}">
-                    </div>
-                    <div class="value-count">${count}</div>
-                `;
-                
-                container.appendChild(row);
-            });
-
-            document.getElementById('valueRenameContainer').classList.remove('hidden');
-        }
-
-        function bulkReplace() {
-            const findText = document.getElementById('findText').value;
-            const replaceText = document.getElementById('replaceText').value;
-            
-            if (!findText) {
-                showAlert('Please enter text to find', 'warning');
-                return;
-            }
-
-            const selectedColumn = document.getElementById('valueColumnSelect').value;
-            const inputs = document.querySelectorAll(`input[data-column="${selectedColumn}"]`);
-            let replacedCount = 0;
-
-            inputs.forEach(input => {
-                const originalValue = input.getAttribute('data-original');
-                if (originalValue.includes(findText)) {
-                    const newValue = originalValue.replace(new RegExp(findText, 'g'), replaceText);
-                    input.value = newValue;
-                    replacedCount++;
-                }
-            });
-
-            showAlert(`✅ Replaced text in ${replacedCount} values`, 'success');
-        }
-
-        function bulkTransform() {
-            const transform = document.getElementById('transformSelect').value;
-            if (!transform) {
-                showAlert('Please select a transformation', 'warning');
-                return;
-            }
-
-            const selectedColumn = document.getElementById('valueColumnSelect').value;
-            const inputs = document.querySelectorAll(`input[data-column="${selectedColumn}"]`);
-            let transformedCount = 0;
-
-            inputs.forEach(input => {
-                const originalValue = input.getAttribute('data-original');
-                let newValue = originalValue;
-
-                switch(transform) {
-                    case 'uppercase':
-                        newValue = originalValue.toUpperCase();
-                        break;
-                    case 'lowercase':
-                        newValue = originalValue.toLowerCase();
-                        break;
-                    case 'capitalize':
-                        newValue = originalValue.charAt(0).toUpperCase() + originalValue.slice(1).toLowerCase();
-                        break;
-                    case 'title':
-                        newValue = originalValue.replace(/\w\S*/g, (txt) => 
-                            txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-                        break;
-                }
-
-                if (newValue !== originalValue) {
-                    input.value = newValue;
-                    transformedCount++;
-                }
-            });
-
-            showAlert(`✅ Transformed ${transformedCount} values`, 'success');
-            document.getElementById('transformSelect').value = '';
-        }
-
-        function applyChanges() {
-            // Collect column renames
-            const columnRenames = {};
-            let hasColumnChanges = false;
-
-            originalColumns.forEach((column, index) => {
-                const input = document.getElementById(`rename_${index}`);
-                const newName = input.value.trim();
-                if (newName && newName !== column) {
-                    columnRenames[column] = newName;
-                    hasColumnChanges = true;
-                }
-            });
-
-            // Collect value renames
-            const valueRenames = {};
-            const selectedColumn = document.getElementById('valueColumnSelect').value;
-            let hasValueChanges = false;
-
-            if (selectedColumn) {
-                const inputs = document.querySelectorAll(`input[data-column="${selectedColumn}"]`);
-                valueRenames[selectedColumn] = {};
-
-                inputs.forEach(input => {
-                    const originalValue = input.getAttribute('data-original');
-                    const newValue = input.value.trim();
-                    if (newValue && newValue !== originalValue) {
-                        valueRenames[selectedColumn][originalValue] = newValue;
-                        hasValueChanges = true;
-                    }
-                });
-            }
-
-            if (!hasColumnChanges && !hasValueChanges) {
-                showAlert('⚠️ No changes to apply. Please rename at least one column or value.', 'warning');
-                return;
-            }
-
-            // Validate changes
-            const validation = validateAllChanges(columnRenames, valueRenames);
-            
-            if (validation.errors.length > 0) {
-                validation.errors.forEach(error => {
-                    showAlert('❌ ' + error, 'error');
-                });
-                return;
-            }
-
-            if (validation.warnings.length > 0) {
-                validation.warnings.forEach(warning => {
-                    showAlert('⚠️ ' + warning, 'warning');
-                });
-            }
-
-            // Apply all changes
-            try {
-                renamedData = applyAllRenames(currentData, columnRenames, valueRenames);
-                columnRenameMapping = columnRenames;
-                valueRenameMapping = valueRenames;
-                
-                // Reset pagination
-                currentPage = 1;
-                totalPages = Math.ceil(renamedData.length / rowsPerPage);
-                
-                showAlert('✅ All changes applied successfully!', 'success');
-                showResults();
-            } catch (error) {
-                showAlert('❌ Error applying changes: ' + error.message, 'error');
-            }
-        }
-
-        function validateAllChanges(columnRenames, valueRenames) {
-            const errors = [];
-            const warnings = [];
-
-            // Validate column renames
-            const newColumnNames = Object.values(columnRenames);
-            const allFinalColumnNames = [...newColumnNames, ...originalColumns.filter(col => !columnRenames[col])];
-
-            // Check for duplicate column names
-            const columnNameCount = {};
-            allFinalColumnNames.forEach(name => {
-                columnNameCount[name] = (columnNameCount[name] || 0) + 1;
-            });
-
-            Object.entries(columnNameCount).forEach(([name, count]) => {
-                if (count > 1) {
-                    errors.push(`Duplicate column name '${name}' found`);
-                }
-            });
-
-            // Check for invalid characters in column names
-            const invalidChars = ['/', '\\', '?', '*', '[', ']', ':', '<', '>', '|'];
-            Object.entries(columnRenames).forEach(([oldName, newName]) => {
-                if (invalidChars.some(char => newName.includes(char))) {
-                    warnings.push(`Column '${newName}' contains special characters that may cause issues`);
-                }
-            });
-
-            // Validate value renames
-            Object.entries(valueRenames).forEach(([column, renames]) => {
-                const newValues = Object.values(renames);
-                const duplicateValues = newValues.filter((value, index) => newValues.indexOf(value) !== index);
-                
-                if (duplicateValues.length > 0) {
-                    warnings.push(`Column '${column}' will have duplicate values after renaming: ${duplicateValues.join(', ')}`);
-                }
-            });
-
-            return { errors, warnings };
-        }
-
-        function applyAllRenames(data, columnRenames, valueRenames) {
-            return data.map(row => {
-                const newRow = {};
-                
-                // Process all columns from the original data
-                Object.entries(row).forEach(([originalKey, value]) => {
-                    // Apply column rename (use new name if renamed, otherwise keep original)
-                    const newKey = columnRenames[originalKey] || originalKey;
-                    
-                    // Apply value rename if applicable for this specific column
-                    let newValue = value;
-                    if (valueRenames[originalKey] && valueRenames[originalKey].hasOwnProperty(value)) {
-                        newValue = valueRenames[originalKey][value];
-                    }
-                    
-                    newRow[newKey] = newValue;
-                });
-                
-                return newRow;
-            });
-        }
-
-        function showResults() {
-            // Hide rename section, show results
-            document.getElementById('renameSection').classList.add('hidden');
-            document.getElementById('resultsSection').classList.remove('hidden');
-
-            // Show rename summary
-            const summaryContainer = document.getElementById('renameSummary');
-            summaryContainer.innerHTML = '';
-            
-            // Column renames summary
-            if (Object.keys(columnRenameMapping).length > 0) {
-                Object.entries(columnRenameMapping).forEach(([oldName, newName]) => {
-                    const div = document.createElement('div');
-                    div.className = 'rename-summary';
-                    div.innerHTML = `<strong>Column Renamed:</strong> <code>${oldName}</code> → <code>${newName}</code>`;
-                    summaryContainer.appendChild(div);
-                });
-            }
-
-            // Value renames summary
-            Object.entries(valueRenameMapping).forEach(([column, renames]) => {
-                if (Object.keys(renames).length > 0) {
-                    Object.entries(renames).forEach(([oldValue, newValue]) => {
-                        const div = document.createElement('div');
-                        div.className = 'value-summary';
-                        div.innerHTML = `<strong>Value Renamed in '${column}':</strong> <code>${oldValue}</code> → <code>${newValue}</code>`;
-                        summaryContainer.appendChild(div);
-                    });
-                }
-            });
-
-            // Overall statistics
-            const totalColumnRenames = Object.keys(columnRenameMapping).length;
-            const totalValueRenames = Object.values(valueRenameMapping).reduce((total, renames) => 
-                total + Object.keys(renames).length, 0);
-            const totalUnchangedColumns = originalColumns.length - totalColumnRenames;
-            
-            summaryContainer.insertAdjacentHTML('beforeend', `
-                <div style="margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%); border-radius: 8px;">
-                    <p><strong>📊 Summary:</strong></p>
-                    <p><strong>Columns renamed:</strong> ${totalColumnRenames}</p>
-                    <p><strong>Values renamed:</strong> ${totalValueRenames}</p>
-                    <p><strong>Unchanged columns:</strong> ${totalUnchangedColumns}</p>
-                    <p><strong>Total rows:</strong> ${renamedData.length.toLocaleString()}</p>
-                    <p><strong>Total columns:</strong> ${Object.keys(renamedData[0]).length}</p>
-                </div>
-            `);
-
-            // Show data table with pagination
-            updateDataTable();
-            
-            // Show column comparison
-            showColumnComparison();
-        }
-
-        function updateDataTable() {
-            const table = document.getElementById('dataTable');
-            table.innerHTML = '';
-
-            if (!renamedData || renamedData.length === 0) return;
-
-            // Update pagination variables
-            const rowsPerPageSelect = document.getElementById('rowsPerPage');
-            rowsPerPage = rowsPerPageSelect.value === 'all' ? renamedData.length : parseInt(rowsPerPageSelect.value);
-            totalPages = Math.ceil(renamedData.length / rowsPerPage);
-
-            // Ensure current page is valid
-            currentPage = Math.max(1, Math.min(currentPage, totalPages));
-
-            // Calculate data slice
-            const startIndex = (currentPage - 1) * rowsPerPage;
-            const endIndex = Math.min(startIndex + rowsPerPage, renamedData.length);
-            const displayData = renamedData.slice(startIndex, endIndex);
-
-            // Create header - make sure to include ALL columns
-            const allColumns = Object.keys(renamedData[0]);
-            const thead = document.createElement('thead');
-            const headerRow = document.createElement('tr');
-            
-            allColumns.forEach(column => {
-                const th = document.createElement('th');
-                th.textContent = column;
-                headerRow.appendChild(th);
-            });
-            
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-
-            // Create body with current page data - ensure ALL columns are shown
-            const tbody = document.createElement('tbody');
-            
-            displayData.forEach(row => {
-                const tr = document.createElement('tr');
-                allColumns.forEach(column => {
-                    const td = document.createElement('td');
-                    td.textContent = row[column] !== undefined && row[column] !== null ? row[column] : '';
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-            
-            table.appendChild(tbody);
-
-            // Update pagination controls
-            updatePaginationControls();
-        }
-
-        function updatePaginationControls() {
-            const pageInfo = document.getElementById('pageInfo');
-            const prevBtn = document.getElementById('prevPage');
-            const nextBtn = document.getElementById('nextPage');
-
-            pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${renamedData.length.toLocaleString()} total rows)`;
-            
-            prevBtn.disabled = currentPage <= 1;
-            nextBtn.disabled = currentPage >= totalPages;
-        }
-
-        function changePage(direction) {
-            const newPage = currentPage + direction;
-            if (newPage >= 1 && newPage <= totalPages) {
-                currentPage = newPage;
-                updateDataTable();
-            }
-        }
-
-        function showColumnComparison() {
-            const originalContainer = document.getElementById('originalColumns');
-            const newContainer = document.getElementById('newColumns');
-            
-            originalContainer.innerHTML = '';
-            newContainer.innerHTML = '';
-
-            // Original columns
-            originalColumns.forEach(col => {
-                const div = document.createElement('div');
-                div.className = 'column-item';
-                const status = columnRenameMapping[col] ? '→ Renamed' : '✓ Unchanged';
-                div.innerHTML = `<code>${col}</code> ${status}`;
-                originalContainer.appendChild(div);
-            });
-
-            // New columns - make sure we show ALL columns from the renamed data
-            const allNewColumns = Object.keys(renamedData[0]);
-            allNewColumns.forEach(col => {
-                const div = document.createElement('div');
-                div.className = 'column-item';
-                
-                // Find original name
-                const originalName = Object.entries(columnRenameMapping).find(([old, new_]) => new_ === col)?.[0];
-                
-                if (originalName) {
-                    div.innerHTML = `<code>${col}</code> ← Renamed from <code>${originalName}</code>`;
-                } else {
-                    div.innerHTML = `<code>${col}</code> ✓ Unchanged`;
-                }
-                
-                newContainer.appendChild(div);
-            });
-        }
-
-        function downloadCSV() {
-            if (!renamedData) return;
-
-            const csv = Papa.unparse(renamedData);
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `renamed_dataset_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
-            a.click();
-            
-            URL.revokeObjectURL(url);
-        }
-
-        function downloadExcel() {
-            if (!renamedData) return;
-
-            // Create workbook with renamed data
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(renamedData);
-            XLSX.utils.book_append_sheet(wb, ws, 'Renamed_Data');
-
-            // Create change log sheet
-            const logData = [];
-            
-            // Add column renames to log
-            Object.entries(columnRenameMapping).forEach(([oldName, newName]) => {
-                logData.push({
-                    Type: 'Column Rename',
-                    Column: oldName,
-                    Original_Value: oldName,
-                    New_Value: newName,
-                    Change_Date: new Date().toISOString()
-                });
-            });
-
-            // Add value renames to log
-            Object.entries(valueRenameMapping).forEach(([column, renames]) => {
-                Object.entries(renames).forEach(([oldValue, newValue]) => {
-                    logData.push({
-                        Type: 'Value Rename',
-                        Column: column,
-                        Original_Value: oldValue,
-                        New_Value: newValue,
-                        Change_Date: new Date().toISOString()
-                    });
-                });
-            });
-            
-            if (logData.length > 0) {
-                const logWs = XLSX.utils.json_to_sheet(logData);
-                XLSX.utils.book_append_sheet(wb, logWs, 'Change_Log');
-            }
-
-            // Download file
-            XLSX.writeFile(wb, `renamed_dataset_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
-        }
-
-        function backToRename() {
-            document.getElementById('resultsSection').classList.add('hidden');
-            document.getElementById('renameSection').classList.remove('hidden');
-        }
-
-        function resetFile() {
-            // Reset all data
-            currentData = null;
-            originalColumns = [];
-            renamedData = null;
-            columnRenameMapping = {};
-            valueRenameMapping = {};
-            activeTab = 'columns';
-            currentPage = 1;
-            rowsPerPage = 100;
-            totalPages = 1;
-            
-            // Reset UI
-            document.getElementById('uploadSection').style.display = 'block';
-            document.getElementById('featuresSection').style.display = 'block';
-            document.getElementById('fileInfo').classList.add('hidden');
-            document.getElementById('renameSection').classList.add('hidden');
-            document.getElementById('resultsSection').classList.add('hidden');
-            document.getElementById('valueRenameContainer').classList.add('hidden');
-            document.getElementById('fileInput').value = '';
-            document.getElementById('alertContainer').innerHTML = '';
-            
-            // Reset to columns tab
-            switchTab('columns');
-        }
-
-        function showAlert(message, type) {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
-            
-            alertContainer.appendChild(alertDiv);
-            
-            // Auto-remove after 5 seconds
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.parentNode.removeChild(alertDiv);
-                }
-            }, 5000);
-        }
-    </script>
-</body>
-</html>
-            <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1588,3 +836,815 @@
                     <h4>New Columns</h4>
                     <div class="column-list" id="newColumns"></div>
                 </div>
+            </div>
+            
+            <h4>💾 Download Renamed Dataset</h4>
+            <div class="download-section">
+                <button class="btn btn-primary" onclick="downloadCSV()">📥 Download as CSV</button>
+                <button class="btn btn-primary" onclick="downloadExcel()">📥 Download as Excel</button>
+            </div>
+            
+            <div style="text-align: center; margin-top: 2rem;">
+                <button class="btn btn-secondary" onclick="backToRename()">✏️ Make More Changes</button>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div id="featuresSection">
+            <h3>ℹ️ How It Works</h3>
+            <div class="features-section">
+                <div class="feature-card">
+                    <h4>Column Renaming:</h4>
+                    <ol>
+                        <li><strong>Upload File:</strong> CSV or Excel file with your data</li>
+                        <li><strong>View Columns:</strong> See all column names with their data types</li>
+                        <li><strong>Enter New Names:</strong> Type new names for columns you want to rename</li>
+                        <li><strong>Apply Changes:</strong> Generate dataset with new column names</li>
+                    </ol>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>Value Renaming:</h4>
+                    <ol>
+                        <li><strong>Select Column:</strong> Choose which column's values to rename</li>
+                        <li><strong>View Unique Values:</strong> See all unique values and their frequencies</li>
+                        <li><strong>Rename Values:</strong> Enter new names for specific values</li>
+                        <li><strong>Bulk Operations:</strong> Use find/replace and transformations</li>
+                    </ol>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>Features:</h4>
+                    <ul>
+                        <li>📊 Visual column type indicators</li>
+                        <li>🏷️ Value frequency counts</li>
+                        <li>🚀 Bulk find/replace operations</li>
+                        <li>📝 Text transformations (case changes)</li>
+                        <li>✅ Duplicate validation</li>
+                        <li>🔄 Before/after comparison</li>
+                        <li>📋 Detailed change log</li>
+                        <li>💾 Excel and CSV downloads</li>
+                        <li>🌐 View complete dataset with pagination</li>
+                        <li>🎨 Dark blue theme for better visibility</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align: center; color: #9ca3af; padding: 2rem; margin-top: 3rem; border-top: 1px solid #4b5563;">
+        <p>✏️ Built with HTML, CSS & JavaScript | Variable & Value Rename Tool v4.0 - Dark Theme</p>
+    </footer>
+
+    <script>
+        let currentData = null;
+        let originalColumns = [];
+        let renamedData = null;
+        let columnRenameMapping = {};
+        let valueRenameMapping = {};
+        let activeTab = 'columns';
+        let currentPage = 1;
+        let rowsPerPage = 100;
+        let totalPages = 1;
+
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+        function switchTab(tab) {
+            activeTab = tab;
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tab + 'Tab').classList.add('active');
+        }
+
+        function showProgress(text, percentage) {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressContainer.classList.remove('hidden');
+            progressFill.style.width = percentage + '%';
+            progressText.textContent = text;
+        }
+
+        function updateProgress(percentage) {
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = Math.min(percentage, 100) + '%';
+        }
+
+        function hideProgress() {
+            const progressContainer = document.getElementById('progressContainer');
+            progressContainer.classList.add('hidden');
+            
+            // Reset progress bar
+            setTimeout(() => {
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                progressFill.style.width = '0%';
+                progressText.textContent = 'Uploading...';
+            }, 300);
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+
+            // Show progress bar
+            showProgress('Uploading file...', 10);
+
+            if (fileExtension === 'csv') {
+                showProgress('Reading CSV file...', 30);
+                
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        showProgress('Processing data...', 80);
+                        setTimeout(() => {
+                            processData(results.data, fileName);
+                            hideProgress();
+                        }, 500);
+                    },
+                    error: function(error) {
+                        hideProgress();
+                        showAlert('Error reading CSV file: ' + error.message, 'error');
+                    },
+                    step: function(row, parser) {
+                        // Update progress during parsing for large files
+                        const progress = Math.min(30 + (parser.cursor / file.size) * 40, 70);
+                        updateProgress(progress);
+                    }
+                });
+            } else if (['xlsx', 'xls'].includes(fileExtension)) {
+                showProgress('Reading Excel file...', 30);
+                
+                const reader = new FileReader();
+                
+                reader.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        const progress = 30 + (e.loaded / e.total) * 40;
+                        updateProgress(progress);
+                    }
+                };
+                
+                reader.onload = function(e) {
+                    try {
+                        showProgress('Processing Excel data...', 80);
+                        
+                        setTimeout(() => {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, {type: 'array'});
+                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                            
+                            showProgress('Finalizing...', 95);
+                            setTimeout(() => {
+                                processData(jsonData, fileName);
+                                hideProgress();
+                            }, 300);
+                        }, 200);
+                    } catch (error) {
+                        hideProgress();
+                        showAlert('Error reading Excel file: ' + error.message, 'error');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    hideProgress();
+                    showAlert('Error reading file', 'error');
+                };
+                
+                reader.readAsArrayBuffer(file);
+            } else {
+                hideProgress();
+                showAlert('Unsupported file type. Please upload CSV or Excel files.', 'error');
+                return;
+            }
+        }
+
+        function processData(data, fileName) {
+            if (!data || data.length === 0) {
+                showAlert('The file appears to be empty or invalid.', 'error');
+                return;
+            }
+
+            currentData = data;
+            originalColumns = Object.keys(data[0]);
+            
+            showAlert('✅ File uploaded successfully!', 'success');
+            
+            // Update file info
+            updateFileStats(data, fileName);
+            
+            // Create interfaces
+            createColumnRenameInterface();
+            populateColumnSelector();
+            
+            // Show sections
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('featuresSection').style.display = 'none';
+            document.getElementById('fileInfo').classList.remove('hidden');
+            document.getElementById('renameSection').classList.remove('hidden');
+        }
+
+        function updateFileStats(data, fileName) {
+            const rowCount = data.length;
+            const colCount = originalColumns.length;
+            let numericCount = 0;
+            let textCount = 0;
+
+            originalColumns.forEach(col => {
+                if (isNumericColumn(data, col)) {
+                    numericCount++;
+                } else {
+                    textCount++;
+                }
+            });
+
+            document.getElementById('rowCount').textContent = rowCount.toLocaleString();
+            document.getElementById('colCount').textContent = colCount;
+            document.getElementById('numericCount').textContent = numericCount;
+            document.getElementById('textCount').textContent = textCount;
+        }
+
+        function isNumericColumn(data, columnName) {
+            const sample = data.slice(0, 100);
+            let numericCount = 0;
+            
+            for (let row of sample) {
+                const value = row[columnName];
+                if (value !== null && value !== undefined && value !== '' && !isNaN(Number(value))) {
+                    numericCount++;
+                }
+            }
+            
+            return numericCount / sample.length > 0.7;
+        }
+
+        function getColumnType(data, columnName) {
+            if (isNumericColumn(data, columnName)) {
+                return { type: 'Numeric', class: 'numeric' };
+            } else {
+                const sample = data[0][columnName];
+                if (sample && (sample.includes('/') || sample.includes('-')) && new Date(sample).toString() !== 'Invalid Date') {
+                    return { type: 'DateTime', class: 'datetime' };
+                }
+                return { type: 'Text', class: 'text' };
+            }
+        }
+
+        function createColumnRenameInterface() {
+            const container = document.getElementById('columnList');
+            container.innerHTML = '';
+
+            originalColumns.forEach((column, index) => {
+                const columnType = getColumnType(currentData, column);
+                
+                const row = document.createElement('div');
+                row.className = 'column-rename-row';
+                
+                row.innerHTML = `
+                    <div class="column-original">
+                        <strong>${column}</strong>
+                        <span class="column-type-badge ${columnType.class}">${columnType.type}</span>
+                    </div>
+                    <div class="column-new">
+                        <input type="text" id="rename_${index}" placeholder="Enter new name for '${column}'">
+                    </div>
+                `;
+                
+                container.appendChild(row);
+            });
+        }
+
+        function populateColumnSelector() {
+            const select = document.getElementById('valueColumnSelect');
+            select.innerHTML = '<option value="">Choose a column to rename its values...</option>';
+            
+            originalColumns.forEach(column => {
+                const option = document.createElement('option');
+                option.value = column;
+                option.textContent = column;
+                select.appendChild(option);
+            });
+        }
+
+        function loadColumnValues() {
+            const selectedColumn = document.getElementById('valueColumnSelect').value;
+            if (!selectedColumn) {
+                document.getElementById('valueRenameContainer').classList.add('hidden');
+                return;
+            }
+
+            // Get unique values and their counts
+            const valueCounts = {};
+            currentData.forEach(row => {
+                const value = row[selectedColumn];
+                const key = value === null || value === undefined ? '[NULL]' : String(value);
+                valueCounts[key] = (valueCounts[key] || 0) + 1;
+            });
+
+            // Sort by frequency (descending)
+            const sortedValues = Object.entries(valueCounts).sort((a, b) => b[1] - a[1]);
+
+            // Create value rename interface
+            const container = document.getElementById('valueList');
+            container.innerHTML = '';
+
+            sortedValues.forEach(([value, count], index) => {
+                const row = document.createElement('div');
+                row.className = 'value-item';
+                
+                row.innerHTML = `
+                    <div class="value-original">${value}</div>
+                    <div class="value-new">
+                        <input type="text" id="value_${selectedColumn}_${index}" 
+                               placeholder="Enter new value for '${value}'" 
+                               data-original="${value}" 
+                               data-column="${selectedColumn}">
+                    </div>
+                    <div class="value-count">${count}</div>
+                `;
+                
+                container.appendChild(row);
+            });
+
+            document.getElementById('valueRenameContainer').classList.remove('hidden');
+        }
+
+        function bulkReplace() {
+            const findText = document.getElementById('findText').value;
+            const replaceText = document.getElementById('replaceText').value;
+            
+            if (!findText) {
+                showAlert('Please enter text to find', 'warning');
+                return;
+            }
+
+            const selectedColumn = document.getElementById('valueColumnSelect').value;
+            const inputs = document.querySelectorAll(`input[data-column="${selectedColumn}"]`);
+            let replacedCount = 0;
+
+            inputs.forEach(input => {
+                const originalValue = input.getAttribute('data-original');
+                if (originalValue.includes(findText)) {
+                    const newValue = originalValue.replace(new RegExp(findText, 'g'), replaceText);
+                    input.value = newValue;
+                    replacedCount++;
+                }
+            });
+
+            showAlert(`✅ Replaced text in ${replacedCount} values`, 'success');
+        }
+
+        function bulkTransform() {
+            const transform = document.getElementById('transformSelect').value;
+            if (!transform) {
+                showAlert('Please select a transformation', 'warning');
+                return;
+            }
+
+            const selectedColumn = document.getElementById('valueColumnSelect').value;
+            const inputs = document.querySelectorAll(`input[data-column="${selectedColumn}"]`);
+            let transformedCount = 0;
+
+            inputs.forEach(input => {
+                const originalValue = input.getAttribute('data-original');
+                let newValue = originalValue;
+
+                switch(transform) {
+                    case 'uppercase':
+                        newValue = originalValue.toUpperCase();
+                        break;
+                    case 'lowercase':
+                        newValue = originalValue.toLowerCase();
+                        break;
+                    case 'capitalize':
+                        newValue = originalValue.charAt(0).toUpperCase() + originalValue.slice(1).toLowerCase();
+                        break;
+                    case 'title':
+                        newValue = originalValue.replace(/\w\S*/g, (txt) => 
+                            txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+                        break;
+                }
+
+                if (newValue !== originalValue) {
+                    input.value = newValue;
+                    transformedCount++;
+                }
+            });
+
+            showAlert(`✅ Transformed ${transformedCount} values`, 'success');
+            document.getElementById('transformSelect').value = '';
+        }
+
+        function applyChanges() {
+            // Collect column renames
+            const columnRenames = {};
+            let hasColumnChanges = false;
+
+            originalColumns.forEach((column, index) => {
+                const input = document.getElementById(`rename_${index}`);
+                const newName = input.value.trim();
+                if (newName && newName !== column) {
+                    columnRenames[column] = newName;
+                    hasColumnChanges = true;
+                }
+            });
+
+            // Collect value renames
+            const valueRenames = {};
+            const selectedColumn = document.getElementById('valueColumnSelect').value;
+            let hasValueChanges = false;
+
+            if (selectedColumn) {
+                const inputs = document.querySelectorAll(`input[data-column="${selectedColumn}"]`);
+                valueRenames[selectedColumn] = {};
+
+                inputs.forEach(input => {
+                    const originalValue = input.getAttribute('data-original');
+                    const newValue = input.value.trim();
+                    if (newValue && newValue !== originalValue) {
+                        valueRenames[selectedColumn][originalValue] = newValue;
+                        hasValueChanges = true;
+                    }
+                });
+            }
+
+            if (!hasColumnChanges && !hasValueChanges) {
+                showAlert('⚠️ No changes to apply. Please rename at least one column or value.', 'warning');
+                return;
+            }
+
+            // Validate changes
+            const validation = validateAllChanges(columnRenames, valueRenames);
+            
+            if (validation.errors.length > 0) {
+                validation.errors.forEach(error => {
+                    showAlert('❌ ' + error, 'error');
+                });
+                return;
+            }
+
+            if (validation.warnings.length > 0) {
+                validation.warnings.forEach(warning => {
+                    showAlert('⚠️ ' + warning, 'warning');
+                });
+            }
+
+            // Apply all changes
+            try {
+                renamedData = applyAllRenames(currentData, columnRenames, valueRenames);
+                columnRenameMapping = columnRenames;
+                valueRenameMapping = valueRenames;
+                
+                // Reset pagination
+                currentPage = 1;
+                totalPages = Math.ceil(renamedData.length / rowsPerPage);
+                
+                showAlert('✅ All changes applied successfully!', 'success');
+                showResults();
+            } catch (error) {
+                showAlert('❌ Error applying changes: ' + error.message, 'error');
+            }
+        }
+
+        function validateAllChanges(columnRenames, valueRenames) {
+            const errors = [];
+            const warnings = [];
+
+            // Validate column renames
+            const newColumnNames = Object.values(columnRenames);
+            const allFinalColumnNames = [...newColumnNames, ...originalColumns.filter(col => !columnRenames[col])];
+
+            // Check for duplicate column names
+            const columnNameCount = {};
+            allFinalColumnNames.forEach(name => {
+                columnNameCount[name] = (columnNameCount[name] || 0) + 1;
+            });
+
+            Object.entries(columnNameCount).forEach(([name, count]) => {
+                if (count > 1) {
+                    errors.push(`Duplicate column name '${name}' found`);
+                }
+            });
+
+            // Check for invalid characters in column names
+            const invalidChars = ['/', '\\', '?', '*', '[', ']', ':', '<', '>', '|'];
+            Object.entries(columnRenames).forEach(([oldName, newName]) => {
+                if (invalidChars.some(char => newName.includes(char))) {
+                    warnings.push(`Column '${newName}' contains special characters that may cause issues`);
+                }
+            });
+
+            // Validate value renames
+            Object.entries(valueRenames).forEach(([column, renames]) => {
+                const newValues = Object.values(renames);
+                const duplicateValues = newValues.filter((value, index) => newValues.indexOf(value) !== index);
+                
+                if (duplicateValues.length > 0) {
+                    warnings.push(`Column '${column}' will have duplicate values after renaming: ${duplicateValues.join(', ')}`);
+                }
+            });
+
+            return { errors, warnings };
+        }
+
+        function applyAllRenames(data, columnRenames, valueRenames) {
+            return data.map(row => {
+                const newRow = {};
+                
+                // Process all columns from the original data
+                Object.entries(row).forEach(([originalKey, value]) => {
+                    // Apply column rename (use new name if renamed, otherwise keep original)
+                    const newKey = columnRenames[originalKey] || originalKey;
+                    
+                    // Apply value rename if applicable for this specific column
+                    let newValue = value;
+                    if (valueRenames[originalKey] && valueRenames[originalKey].hasOwnProperty(value)) {
+                        newValue = valueRenames[originalKey][value];
+                    }
+                    
+                    newRow[newKey] = newValue;
+                });
+                
+                return newRow;
+            });
+        }
+
+        function showResults() {
+            // Hide rename section, show results
+            document.getElementById('renameSection').classList.add('hidden');
+            document.getElementById('resultsSection').classList.remove('hidden');
+
+            // Show rename summary
+            const summaryContainer = document.getElementById('renameSummary');
+            summaryContainer.innerHTML = '';
+            
+            // Column renames summary
+            if (Object.keys(columnRenameMapping).length > 0) {
+                Object.entries(columnRenameMapping).forEach(([oldName, newName]) => {
+                    const div = document.createElement('div');
+                    div.className = 'rename-summary';
+                    div.innerHTML = `<strong>Column Renamed:</strong> <code>${oldName}</code> → <code>${newName}</code>`;
+                    summaryContainer.appendChild(div);
+                });
+            }
+
+            // Value renames summary
+            Object.entries(valueRenameMapping).forEach(([column, renames]) => {
+                if (Object.keys(renames).length > 0) {
+                    Object.entries(renames).forEach(([oldValue, newValue]) => {
+                        const div = document.createElement('div');
+                        div.className = 'value-summary';
+                        div.innerHTML = `<strong>Value Renamed in '${column}':</strong> <code>${oldValue}</code> → <code>${newValue}</code>`;
+                        summaryContainer.appendChild(div);
+                    });
+                }
+            });
+
+            // Overall statistics
+            const totalColumnRenames = Object.keys(columnRenameMapping).length;
+            const totalValueRenames = Object.values(valueRenameMapping).reduce((total, renames) => 
+                total + Object.keys(renames).length, 0);
+            const totalUnchangedColumns = originalColumns.length - totalColumnRenames;
+            
+            summaryContainer.insertAdjacentHTML('beforeend', `
+                <div style="margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%); border-radius: 8px;">
+                    <p><strong>📊 Summary:</strong></p>
+                    <p><strong>Columns renamed:</strong> ${totalColumnRenames}</p>
+                    <p><strong>Values renamed:</strong> ${totalValueRenames}</p>
+                    <p><strong>Unchanged columns:</strong> ${totalUnchangedColumns}</p>
+                    <p><strong>Total rows:</strong> ${renamedData.length.toLocaleString()}</p>
+                    <p><strong>Total columns:</strong> ${Object.keys(renamedData[0]).length}</p>
+                </div>
+            `);
+
+            // Show data table with pagination
+            updateDataTable();
+            
+            // Show column comparison
+            showColumnComparison();
+        }
+
+        function updateDataTable() {
+            const table = document.getElementById('dataTable');
+            table.innerHTML = '';
+
+            if (!renamedData || renamedData.length === 0) return;
+
+            // Update pagination variables
+            const rowsPerPageSelect = document.getElementById('rowsPerPage');
+            rowsPerPage = rowsPerPageSelect.value === 'all' ? renamedData.length : parseInt(rowsPerPageSelect.value);
+            totalPages = Math.ceil(renamedData.length / rowsPerPage);
+
+            // Ensure current page is valid
+            currentPage = Math.max(1, Math.min(currentPage, totalPages));
+
+            // Calculate data slice
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, renamedData.length);
+            const displayData = renamedData.slice(startIndex, endIndex);
+
+            // Create header - make sure to include ALL columns
+            const allColumns = Object.keys(renamedData[0]);
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            
+            allColumns.forEach(column => {
+                const th = document.createElement('th');
+                th.textContent = column;
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // Create body with current page data - ensure ALL columns are shown
+            const tbody = document.createElement('tbody');
+            
+            displayData.forEach(row => {
+                const tr = document.createElement('tr');
+                allColumns.forEach(column => {
+                    const td = document.createElement('td');
+                    td.textContent = row[column] !== undefined && row[column] !== null ? row[column] : '';
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            
+            table.appendChild(tbody);
+
+            // Update pagination controls
+            updatePaginationControls();
+        }
+
+        function updatePaginationControls() {
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${renamedData.length.toLocaleString()} total rows)`;
+            
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages;
+        }
+
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                updateDataTable();
+            }
+        }
+
+        function showColumnComparison() {
+            const originalContainer = document.getElementById('originalColumns');
+            const newContainer = document.getElementById('newColumns');
+            
+            originalContainer.innerHTML = '';
+            newContainer.innerHTML = '';
+
+            // Original columns
+            originalColumns.forEach(col => {
+                const div = document.createElement('div');
+                div.className = 'column-item';
+                const status = columnRenameMapping[col] ? '→ Renamed' : '✓ Unchanged';
+                div.innerHTML = `<code>${col}</code> ${status}`;
+                originalContainer.appendChild(div);
+            });
+
+            // New columns - make sure we show ALL columns from the renamed data
+            const allNewColumns = Object.keys(renamedData[0]);
+            allNewColumns.forEach(col => {
+                const div = document.createElement('div');
+                div.className = 'column-item';
+                
+                // Find original name
+                const originalName = Object.entries(columnRenameMapping).find(([old, new_]) => new_ === col)?.[0];
+                
+                if (originalName) {
+                    div.innerHTML = `<code>${col}</code> ← Renamed from <code>${originalName}</code>`;
+                } else {
+                    div.innerHTML = `<code>${col}</code> ✓ Unchanged`;
+                }
+                
+                newContainer.appendChild(div);
+            });
+        }
+
+        function downloadCSV() {
+            if (!renamedData) return;
+
+            const csv = Papa.unparse(renamedData);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `renamed_dataset_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadExcel() {
+            if (!renamedData) return;
+
+            // Create workbook with renamed data
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(renamedData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Renamed_Data');
+
+            // Create change log sheet
+            const logData = [];
+            
+            // Add column renames to log
+            Object.entries(columnRenameMapping).forEach(([oldName, newName]) => {
+                logData.push({
+                    Type: 'Column Rename',
+                    Column: oldName,
+                    Original_Value: oldName,
+                    New_Value: newName,
+                    Change_Date: new Date().toISOString()
+                });
+            });
+
+            // Add value renames to log
+            Object.entries(valueRenameMapping).forEach(([column, renames]) => {
+                Object.entries(renames).forEach(([oldValue, newValue]) => {
+                    logData.push({
+                        Type: 'Value Rename',
+                        Column: column,
+                        Original_Value: oldValue,
+                        New_Value: newValue,
+                        Change_Date: new Date().toISOString()
+                    });
+                });
+            });
+            
+            if (logData.length > 0) {
+                const logWs = XLSX.utils.json_to_sheet(logData);
+                XLSX.utils.book_append_sheet(wb, logWs, 'Change_Log');
+            }
+
+            // Download file
+            XLSX.writeFile(wb, `renamed_dataset_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
+        }
+
+        function backToRename() {
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('renameSection').classList.remove('hidden');
+        }
+
+        function resetFile() {
+            // Reset all data
+            currentData = null;
+            originalColumns = [];
+            renamedData = null;
+            columnRenameMapping = {};
+            valueRenameMapping = {};
+            activeTab = 'columns';
+            currentPage = 1;
+            rowsPerPage = 100;
+            totalPages = 1;
+            
+            // Reset UI
+            document.getElementById('uploadSection').style.display = 'block';
+            document.getElementById('featuresSection').style.display = 'block';
+            document.getElementById('fileInfo').classList.add('hidden');
+            document.getElementById('renameSection').classList.add('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('valueRenameContainer').classList.add('hidden');
+            document.getElementById('fileInput').value = '';
+            document.getElementById('alertContainer').innerHTML = '';
+            
+            // Reset to columns tab
+            switchTab('columns');
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
