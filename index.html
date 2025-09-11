@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Individual Region Health Facility Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0d1421 0%, #1a2332 50%, #2c3e50 100%);
+            color: #e8f4fd;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .main-header {
+            text-align: center;
+            padding: 3rem 0;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+            color: white;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .main-header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-header p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .upload-section {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+            margin: 2rem 0;
+            border: 1px solid #475569;
+            position: relative;
+        }
+
+        .upload-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa, #93c5fd);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .upload-section h3 {
+            color: #60a5fa;
+            margin-bottom: 1rem;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 1rem 0;
+        }
+
+        .file-input {
+            display: inline-block;
+            padding: 18px 36px;
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+            border: 2px solid transparent;
+        }
+
+        .file-input:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(59, 130, 246, 0.6);
+            border-color: #60a5fa;
+        }
+
+        .file-input input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
+            padding: 2rem;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            border: 1px solid #475569;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(59, 130, 246, 0.2);
+        }
+
+        .metric-card h4 {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .metric-card .metric-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #60a5fa;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .metric-card p {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            color: white;
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+            border: 2px solid transparent;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.6);
+            border-color: #60a5fa;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            color: white;
+            box-shadow: 0 6px 20px rgba(71, 85, 105, 0.4);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+        }
+
+        .alert {
+            padding: 1.2rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            font-weight: 500;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.15) 100%);
+            border-left-color: #22c55e;
+            color: #86efac;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
+            border-left-color: #ef4444;
+            color: #fca5a5;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.15) 100%);
+            border-left-color: #3b82f6;
+            color: #93c5fd;
+        }
+
+        .results-section {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+            margin: 2rem 0;
+            border: 1px solid #475569;
+        }
+
+        .region-selector {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            padding: 2rem;
+            border-radius: 16px;
+            margin: 2rem 0;
+            border: 1px solid #334155;
+        }
+
+        .region-selector h3 {
+            color: #60a5fa;
+            margin-bottom: 1.5rem;
+            font-size: 1.4rem;
+        }
+
+        .region-dropdown {
+            width: 100%;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 2px solid #334155;
+            border-radius: 10px;
+            color: #e2e8f0;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .region-dropdown option {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 10px;
+        }
+
+        .region-dropdown:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+
+        .chart-container {
+            margin: 2rem 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+        }
+
+        .chart-title {
+            text-align: center;
+            color: #60a5fa;
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .heatmap-canvas {
+            width: 100%;
+            height: 700px;
+            border-radius: 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(59, 130, 246, 0.2);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .download-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .container {
+                padding: 0 0.5rem;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <h1>Individual Region Health Facility Analysis</h1>
+        <p>Deep dive into reporting rates by district within each region</p>
+    </div>
+
+    <div class="container">
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <h3>📊 Data Upload</h3>
+            <p>Upload your health facility data file. Expected columns: adm1, adm3, date, report_conf, hf_expected_to_report_month</p>
+            
+            <div class="file-input-wrapper">
+                <label class="file-input">
+                    📁 Choose File
+                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+                </label>
+            </div>
+            
+            <div id="uploadProgress" class="hidden">
+                <div class="loading-spinner"></div>
+                <p>Processing your file...</p>
+            </div>
+        </div>
+
+        <!-- Alerts Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Data Summary -->
+        <div id="dataSummary" class="hidden">
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <h4>Total Regions</h4>
+                    <div class="metric-value" id="totalRegions">0</div>
+                    <p>Available regions</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Total Districts</h4>
+                    <div class="metric-value" id="totalDistricts">0</div>
+                    <p>Unique districts</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Time Periods</h4>
+                    <div class="metric-value" id="totalDates">0</div>
+                    <p>Reporting months</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Overall Avg Rate</h4>
+                    <div class="metric-value" id="overallRate">0%</div>
+                    <p>Reporting rate</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Region Selection -->
+        <div id="regionSelector" class="region-selector hidden">
+            <h3>🗺️ Select Region to Analyze</h3>
+            <select id="regionDropdown" class="region-dropdown">
+                <option value="">Choose a region...</option>
+            </select>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <!-- Individual Region Chart -->
+            <div class="chart-container">
+                <div class="chart-title" id="chartTitle">Regional Heatmap</div>
+                <canvas class="heatmap-canvas" id="heatmapCanvas"></canvas>
+            </div>
+            
+            <!-- Regional Statistics -->
+            <div class="results-section">
+                <h3>📈 Regional Statistics</h3>
+                <div class="stats-grid" id="statsGrid">
+                    <!-- Stats will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Download Section -->
+            <div class="results-section">
+                <h3>💾 Download Options</h3>
+                <div class="download-section">
+                    <button class="btn btn-primary" onclick="downloadHeatmap()">📊 Download Heatmap</button>
+                    <button class="btn btn-primary" onclick="downloadRegionData()">📋 Download Region Data</button>
+                    <button class="btn btn-secondary" onclick="downloadFullReport()">📄 Download Full Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; color: #64748b; padding: 2rem; margin-top: 3rem; border-top: 1px solid #334155;">
+        <p>Individual Region Health Facility Analysis Tool | Built with Modern Web Technologies</p>
+    </div>
+
+    <script>
+        let processedData = null;
+        let groupedData = null;
+        let selectedRegion = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+            document.getElementById('regionDropdown').addEventListener('change', handleRegionSelection);
+        });
+
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+
+            document.getElementById('uploadProgress').classList.remove('hidden');
+
+            if (fileExtension === 'csv') {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        processData(results.data);
+                    },
+                    error: function(error) {
+                        showAlert('Error reading CSV file: ' + error.message, 'error');
+                        document.getElementById('uploadProgress').classList.add('hidden');
+                    }
+                });
+            } else if (['xlsx', 'xls'].includes(fileExtension)) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        processData(jsonData);
+                    } catch (error) {
+                        showAlert('Error reading Excel file: ' + error.message, 'error');
+                        document.getElementById('uploadProgress').classList.add('hidden');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                showAlert('Unsupported file type. Please upload CSV or Excel files.', 'error');
+                document.getElementById('uploadProgress').classList.add('hidden');
+            }
+        }
+
+        function processData(data) {
+            document.getElementById('uploadProgress').classList.add('hidden');
+            
+            if (!data || data.length === 0) {
+                showAlert('The file appears to be empty or invalid.', 'error');
+                return;
+            }
+
+            if (!validateData(data)) {
+                return;
+            }
+
+            processedData = data;
+            calculateReportingRates();
+            updateDataSummary();
+            populateRegionDropdown();
+            
+            showAlert('Data processed successfully!', 'success');
+            
+            document.getElementById('dataSummary').classList.remove('hidden');
+            document.getElementById('regionSelector').classList.remove('hidden');
+        }
+
+        function validateData(data) {
+            const requiredCols = ['adm1', 'adm3', 'date', 'report_conf', 'hf_expected_to_report_month'];
+            const availableCols = Object.keys(data[0] || {});
+            const missingCols = requiredCols.filter(col => !availableCols.includes(col));
+            
+            if (missingCols.length > 0) {
+                showAlert(`Missing required columns: ${missingCols.join(', ')}`, 'error');
+                return false;
+            }
+
+            data.forEach(row => {
+                row.report_conf = Number(row.report_conf) || 0;
+                row.hf_expected_to_report_month = Number(row.hf_expected_to_report_month) || 0;
+                
+                if (typeof row.date === 'string') {
+                    const dateObj = new Date(row.date);
+                    if (!isNaN(dateObj.getTime())) {
+                        row.date = dateObj;
+                    }
+                }
+            });
+
+            return true;
+        }
+
+        function calculateReportingRates() {
+            const grouped = {};
+            
+            processedData.forEach(row => {
+                const dateKey = formatDate(row.date);
+                const key = `${row.adm1}|${row.adm3}|${dateKey}`;
+                
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        adm1: row.adm1,
+                        adm3: row.adm3,
+                        date: dateKey,
+                        report_conf_sum: 0,
+                        hf_expected_sum: 0
+                    };
+                }
+                
+                grouped[key].report_conf_sum += row.report_conf;
+                grouped[key].hf_expected_sum += row.hf_expected_to_report_month;
+            });
+            
+            groupedData = Object.values(grouped).map(row => ({
+                ...row,
+                reporting_rate: row.hf_expected_sum > 0 ? 
+                    Math.round((row.report_conf_sum / row.hf_expected_sum) * 100 * 100) / 100 : 0
+            }));
+        }
+
+        function formatDate(date) {
+            if (date instanceof Date) {
+                return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            }
+            
+            const str = date.toString();
+            if (str.includes('-') && str.length >= 7) {
+                return str.substring(0, 7);
+            }
+            
+            return str;
+        }
+
+        function updateDataSummary() {
+            if (!groupedData) return;
+            
+            const totalRegions = new Set(groupedData.map(row => row.adm1)).size;
+            const totalDistricts = new Set(groupedData.map(row => row.adm3)).size;
+            const totalDates = new Set(groupedData.map(row => row.date)).size;
+            const overallRate = groupedData.length > 0 ? 
+                (groupedData.reduce((sum, row) => sum + row.reporting_rate, 0) / groupedData.length).toFixed(1) : 0;
+            
+            document.getElementById('totalRegions').textContent = totalRegions;
+            document.getElementById('totalDistricts').textContent = totalDistricts;
+            document.getElementById('totalDates').textContent = totalDates;
+            document.getElementById('overallRate').textContent = `${overallRate}%`;
+        }
+
+        function populateRegionDropdown() {
+            const dropdown = document.getElementById('regionDropdown');
+            const regions = [...new Set(groupedData.map(row => row.adm1))].sort();
+            
+            dropdown.innerHTML = '<option value="">Choose a region...</option>';
+            
+            regions.forEach(region => {
+                const option = document.createElement('option');
+                option.value = region;
+                option.textContent = region;
+                dropdown.appendChild(option);
+            });
+        }
+
+        function handleRegionSelection(event) {
+            selectedRegion = event.target.value;
+            
+            if (selectedRegion) {
+                generateRegionHeatmap(selectedRegion);
+                updateRegionStats(selectedRegion);
+                document.getElementById('resultsSection').classList.remove('hidden');
+            } else {
+                document.getElementById('resultsSection').classList.add('hidden');
+            }
+        }
+
+        function generateRegionHeatmap(regionName) {
+            const canvas = document.getElementById('heatmapCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            const regionData = groupedData.filter(row => row.adm1 === regionName);
+            
+            if (regionData.length === 0) {
+                showAlert(`No data found for region: ${regionName}`, 'error');
+                return;
+            }
+            
+            const districts = [...new Set(regionData.map(row => row.adm3))].sort();
+            const dates = [...new Set(regionData.map(row => row.date))].sort();
+            
+            const districtAvgs = districts.map(district => {
+                const districtData = regionData.filter(row => row.adm3 === district);
+                const avgRate = districtData.reduce((sum, row) => sum + row.reporting_rate, 0) / districtData.length;
+                return { district, avgRate };
+            });
+            
+            districtAvgs.sort((a, b) => b.avgRate - a.avgRate);
+            const sortedDistricts = districtAvgs.map(item => item.district);
+            
+            document.getElementById('chartTitle').textContent = `Monthly Reporting Rate by District (${regionName})`;
+            
+            canvas.width = Math.max(1200, dates.length * 40 + 300);
+            canvas.height = Math.max(600, sortedDistricts.length * 25 + 200);
+            
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#93c5fd';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 4;
+            ctx.fillText(`Monthly Reporting Rate by District (${regionName})`, canvas.width / 2, 35);
+            ctx.shadowBlur = 0;
+            
+            drawLegend(ctx, canvas.width / 2, 70);
+            
+            const startX = 220;
+            const startY = 160;
+            const cellWidth = Math.max(25, (canvas.width - 300) / dates.length);
+            const cellHeight = Math.max(22, (canvas.height - 240) / sortedDistricts.length);
+            
+            ctx.save();
+            ctx.translate(40, startY + (sortedDistricts.length * cellHeight) / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillStyle = '#93c5fd';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Districts', 0, 0);
+            ctx.restore();
+            
+            ctx.fillStyle = '#93c5fd';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Time Period (Month-Year)', startX + (dates.length * cellWidth) / 2, canvas.height - 25);
+            
+            sortedDistricts.forEach((district, districtIndex) => {
+                dates.forEach((date, dateIndex) => {
+                    const dataPoint = regionData.find(row => row.adm3 === district && row.date === date);
+                    const rate = dataPoint ? dataPoint.reporting_rate : 0;
+                    
+                    const cellX = startX + dateIndex * cellWidth;
+                    const cellY = startY + districtIndex * cellHeight;
+                    
+                    ctx.fillStyle = getViridisColor(rate / 100);
+                    ctx.fillRect(cellX, cellY, cellWidth - 1, cellHeight - 1);
+                    
+                    ctx.strokeStyle = '#0f172a';
+                    ctx.lineWidth = 0.8;
+                    ctx.strokeRect(cellX, cellY, cellWidth - 1, cellHeight - 1);
+                });
+                
+                ctx.fillStyle = '#cbd5e1';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'right';
+                const label = district.length > 20 ? district.substring(0, 17) + '...' : district;
+                ctx.fillText(label, startX - 12, startY + districtIndex * cellHeight + cellHeight/2 + 5);
+            });
+            
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = 'bold 11px Arial';
+            ctx.textAlign = 'center';
+            dates.forEach((date, dateIndex) => {
+                if (dateIndex % Math.max(1, Math.floor(dates.length / 12)) === 0 || dates.length <= 12) {
+                    ctx.save();
+                    ctx.translate(startX + dateIndex * cellWidth + cellWidth/2, startY + sortedDistricts.length * cellHeight + 20);
+                    ctx.rotate(-Math.PI/3);
+                    ctx.fillText(date, 0, 0);
+                    ctx.restore();
+                }
+            });
+            
+            ctx.strokeStyle = 'rgba(100, 116, 139, 0.3)';
+            ctx.lineWidth = 0.5;
+            
+            const hGridSpacing = Math.max(3, Math.floor(sortedDistricts.length / 8));
+            for (let i = 0; i <= sortedDistricts.length; i += hGridSpacing) {
+                const y = startY + i * cellHeight;
+                ctx.beginPath();
+                ctx.moveTo(startX, y);
+                ctx.lineTo(startX + dates.length * cellWidth, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawLegend(ctx, centerX, y) {
+            const legendWidth = 350;
+            const legendHeight = 60;
+            
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineWidth = 2;
+            ctx.fillRect(centerX - legendWidth/2, y, legendWidth, legendHeight);
+            ctx.strokeRect(centerX - legendWidth/2, y, legendWidth, legendHeight);
+            
+            ctx.fillStyle = '#93c5fd';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Reporting Rate (%)', centerX, y + 20);
+            
+            const gradientStartX = centerX - 120;
+            const gradientWidth = 240;
+            const gradientY = y + 30;
+            const gradientHeight = 12;
+            
+            for (let i = 0; i <= gradientWidth; i++) {
+                const ratio = i / gradientWidth;
+                ctx.fillStyle = getViridisColor(ratio);
+                ctx.fillRect(gradientStartX + i, gradientY, 1, gradientHeight);
+            }
+            
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(gradientStartX, gradientY, gradientWidth, gradientHeight);
+            
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            
+            const ticks = [0, 25, 50, 75, 100];
+            ticks.forEach(tick => {
+                const x = gradientStartX + (tick / 100) * gradientWidth;
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, gradientY + gradientHeight);
+                ctx.lineTo(x, gradientY + gradientHeight + 5);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillText(`${tick}%`, x, gradientY + gradientHeight + 18);
+            });
+        }
+
+        function getViridisColor(t) {
+            t = Math.max(0, Math.min(1, t));
+            
+            const viridis = [
+                [0.267004, 0.004874, 0.329415],
+                [0.282623, 0.140926, 0.457517],
+                [0.253935, 0.265254, 0.529983],
+                [0.206756, 0.371758, 0.553117],
+                [0.163625, 0.471133, 0.558148],
+                [0.127568, 0.566949, 0.550556],
+                [0.134692, 0.658636, 0.517649],
+                [0.266941, 0.748751, 0.440573],
+                [0.477504, 0.821444, 0.318195],
+                [0.741388, 0.873449, 0.149561],
+                [0.993248, 0.906157, 0.143936]
+            ];
+            
+            const index = t * (viridis.length - 1);
+            const lower = Math.floor(index);
+            const upper = Math.ceil(index);
+            const ratio = index - lower;
+            
+            if (lower === upper) {
+                const color = viridis[lower];
+                return `rgb(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)})`;
+            }
+            
+            const colorLower = viridis[lower];
+            const colorUpper = viridis[upper];
+            
+            const r = Math.round((colorLower[0] * (1 - ratio) + colorUpper[0] * ratio) * 255);
+            const g = Math.round((colorLower[1] * (1 - ratio) + colorUpper[1] * ratio) * 255);
+            const b = Math.round((colorLower[2] * (1 - ratio) + colorUpper[2] * ratio) * 255);
+            
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        function updateRegionStats(regionName) {
+            const regionData = groupedData.filter(row => row.adm1 === regionName);
+            const statsGrid = document.getElementById('statsGrid');
+            
+            if (regionData.length === 0) return;
+            
+            const avgRate = (regionData.reduce((sum, row) => sum + row.reporting_rate, 0) / regionData.length).toFixed(1);
+            const numDistricts = new Set(regionData.map(row => row.adm3)).size;
+            const maxRate = Math.max(...regionData.map(row => row.reporting_rate)).toFixed(1);
+            const minRate = Math.min(...regionData.map(row => row.reporting_rate)).toFixed(1);
+            const totalReports = regionData.reduce((sum, row) => sum + row.report_conf_sum, 0);
+            const totalExpected = regionData.reduce((sum, row) => sum + row.hf_expected_sum, 0);
+            
+            statsGrid.innerHTML = `
+                <div class="metric-card">
+                    <h4>Average Rate</h4>
+                    <div class="metric-value">${avgRate}%</div>
+                    <p>Mean reporting rate</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Districts</h4>
+                    <div class="metric-value">${numDistricts}</div>
+                    <p>Number of districts</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Highest Rate</h4>
+                    <div class="metric-value">${maxRate}%</div>
+                    <p>Best performing</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Lowest Rate</h4>
+                    <div class="metric-value">${minRate}%</div>
+                    <p>Needs improvement</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Total Reports</h4>
+                    <div class="metric-value">${totalReports.toLocaleString()}</div>
+                    <p>Confirmed reports</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Expected Reports</h4>
+                    <div class="metric-value">${totalExpected.toLocaleString()}</div>
+                    <p>Total expected</p>
+                </div>
+            `;
+        }
+
+        function downloadHeatmap() {
+            if (!selectedRegion) {
+                showAlert('Please select a region first', 'error');
+                return;
+            }
+            
+            const canvas = document.getElementById('heatmapCanvas');
+            const link = document.createElement('a');
+            link.download = `reporting_rate_${selectedRegion.replace(/\s+/g, '_')}_heatmap.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            
+            showAlert('Heatmap downloaded successfully!', 'success');
+        }
+
+        function downloadRegionData() {
+            if (!selectedRegion || !groupedData) {
+                showAlert('Please select a region first', 'error');
+                return;
+            }
+            
+            const regionData = groupedData.filter(row => row.adm1 === selectedRegion);
+            const csv = convertToCSV(regionData);
+            downloadFile(csv, `${selectedRegion.replace(/\s+/g, '_')}_data.csv`, 'text/csv');
+            
+            showAlert('Region data downloaded successfully!', 'success');
+        }
+
+        function downloadFullReport() {
+            if (!selectedRegion || !groupedData) {
+                showAlert('Please select a region first', 'error');
+                return;
+            }
+            
+            const regionData = groupedData.filter(row => row.adm1 === selectedRegion);
+            
+            let report = `Individual Region Health Facility Analysis Report\n`;
+            report += `=====================================================\n\n`;
+            report += `Region: ${selectedRegion}\n`;
+            report += `Generated: ${new Date().toISOString()}\n\n`;
+            
+            const avgRate = (regionData.reduce((sum, row) => sum + row.reporting_rate, 0) / regionData.length).toFixed(1);
+            const numDistricts = new Set(regionData.map(row => row.adm3)).size;
+            const maxRate = Math.max(...regionData.map(row => row.reporting_rate)).toFixed(1);
+            const minRate = Math.min(...regionData.map(row => row.reporting_rate)).toFixed(1);
+            
+            report += `Summary Statistics:\n`;
+            report += `------------------\n`;
+            report += `Average Reporting Rate: ${avgRate}%\n`;
+            report += `Number of Districts: ${numDistricts}\n`;
+            report += `Highest Reporting Rate: ${maxRate}%\n`;
+            report += `Lowest Reporting Rate: ${minRate}%\n\n`;
+            
+            report += `District-wise Data:\n`;
+            report += `-------------------\n`;
+            report += `District,Date,Reporting Rate (%),Reports Confirmed,Expected Reports\n`;
+            
+            regionData.forEach(row => {
+                report += `${row.adm3},${row.date},${row.reporting_rate},${row.report_conf_sum},${row.hf_expected_sum}\n`;
+            });
+            
+            downloadFile(report, `${selectedRegion.replace(/\s+/g, '_')}_full_report.txt`, 'text/plain');
+            showAlert('Full report downloaded successfully!', 'success');
+        }
+
+        function convertToCSV(data) {
+            if (!data || data.length === 0) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvContent = [
+                headers.join(','),
+                ...data.map(row => headers.map(header => {
+                    const value = row[header];
+                    return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
+                }).join(','))
+            ].join('\n');
+            
+            return csvContent;
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
