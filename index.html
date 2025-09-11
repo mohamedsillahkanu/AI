@@ -1,4 +1,4 @@
-<!DOCTYPE html>     
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1223,6 +1223,61 @@
                         document.querySelectorAll('.alert-success').forEach(alert => alert.remove());
                     }, 5000);
                 }
+            }
+
+            showLoading(text, progress) {
+                const overlay = document.getElementById('loadingOverlay');
+                const loadingText = document.getElementById('loadingText');
+                const loadingSubtext = document.getElementById('loadingSubtext');
+                const progressBar = document.getElementById('loadingProgressBar');
+
+                loadingText.textContent = text;
+                progressBar.style.width = progress + '%';
+                
+                if (progress < 30) {
+                    loadingSubtext.textContent = 'Reading file contents...';
+                } else if (progress < 70) {
+                    loadingSubtext.textContent = 'Processing data structure...';
+                } else if (progress < 95) {
+                    loadingSubtext.textContent = 'Analyzing columns and data types...';
+                } else {
+                    loadingSubtext.textContent = 'Almost done!';
+                }
+
+                overlay.classList.remove('hidden');
+            }
+
+            updateLoading(text, progress) {
+                const loadingText = document.getElementById('loadingText');
+                const loadingSubtext = document.getElementById('loadingSubtext');
+                const progressBar = document.getElementById('loadingProgressBar');
+
+                loadingText.textContent = text;
+                progressBar.style.width = progress + '%';
+                
+                if (progress < 30) {
+                    loadingSubtext.textContent = 'Reading file contents...';
+                } else if (progress < 70) {
+                    loadingSubtext.textContent = 'Processing data structure...';
+                } else if (progress < 95) {
+                    loadingSubtext.textContent = 'Analyzing columns and data types...';
+                } else {
+                    loadingSubtext.textContent = 'Almost done!';
+                }
+            }
+
+            hideLoading() {
+                const overlay = document.getElementById('loadingOverlay');
+                const progressBar = document.getElementById('loadingProgressBar');
+                
+                // Complete the progress bar first
+                progressBar.style.width = '100%';
+                
+                // Hide after a short delay
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    progressBar.style.width = '0%';
+                }, 500);
             }
         }
 
