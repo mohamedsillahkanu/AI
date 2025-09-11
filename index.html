@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✏️ Variable Rename Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            line-height: 1.6;
+        }
+
+        .main-header {
+            text-align: center;
+            padding: 2rem 0;
+            background: linear-gradient(90deg, #9C27B0 0%, #673AB7 100%);
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        .main-header h1 {
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .upload-section {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            border: 2px dashed #9C27B0;
+            text-align: center;
+            margin: 2rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .upload-section h3 {
+            color: #9C27B0;
+            margin-bottom: 1rem;
+        }
+
+        .file-input {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            background: linear-gradient(90deg, #9C27B0 0%, #673AB7 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            border: none;
+            font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .file-input:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(156, 39, 176, 0.4);
+        }
+
+        .file-input input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .stats-card {
+            background-color: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            border-top: 4px solid #9C27B0;
+        }
+
+        .stats-card h3 {
+            font-size: 2rem;
+            color: #9C27B0;
+            margin-bottom: 0.5rem;
+        }
+
+        .rename-section {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+        }
+
+        .column-rename-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 0.5rem 0;
+            align-items: center;
+        }
+
+        .column-original {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .column-new input {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .column-new input:focus {
+            outline: none;
+            border-color: #9C27B0;
+            box-shadow: 0 0 0 2px rgba(156, 39, 176, 0.1);
+        }
+
+        .column-type-badge {
+            background-color: #2196F3;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        .column-type-badge.numeric {
+            background-color: #4CAF50;
+        }
+
+        .column-type-badge.text {
+            background-color: #FF9800;
+        }
+
+        .column-type-badge.datetime {
+            background-color: #E91E63;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #9C27B0 0%, #673AB7 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(156, 39, 176, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+
+        .results-section {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+        }
+
+        .rename-summary {
+            background-color: #e8f5e8;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+            margin: 0.5rem 0;
+        }
+
+        .data-preview {
+            max-height: 400px;
+            overflow: auto;
+            margin: 1rem 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .data-table th {
+            background-color: #f8f9fa;
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+        }
+
+        .data-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .download-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .features-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .feature-card {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .feature-card h4 {
+            color: #9C27B0;
+            margin-bottom: 1rem;
+        }
+
+        .comparison-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .comparison-card {
+            background-color: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .comparison-card h4 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .column-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .column-item {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background-color: #fff;
+            border-radius: 4px;
+            border-left: 3px solid #9C27B0;
+        }
+
+        @media (max-width: 768px) {
+            .column-rename-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .comparison-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <h1>✏️ Variable Rename Tool</h1>
+        <p>Rename column variables in your dataset with ease</p>
+    </div>
+
+    <div class="container">
+        <!-- Upload Section -->
+        <div id="uploadSection" class="upload-section">
+            <h3>📁 Upload Your Data File</h3>
+            <p>Upload a CSV or Excel file to rename its column variables</p>
+            <label class="file-input">
+                Choose File
+                <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+            </label>
+        </div>
+
+        <!-- File Info -->
+        <div id="fileInfo" class="hidden">
+            <div class="stats-container">
+                <div class="stats-card">
+                    <h3 id="rowCount">0</h3>
+                    <p>Rows</p>
+                </div>
+                <div class="stats-card">
+                    <h3 id="colCount">0</h3>
+                    <p>Columns</p>
+                </div>
+                <div class="stats-card">
+                    <h3 id="numericCount">0</h3>
+                    <p>Numeric</p>
+                </div>
+                <div class="stats-card">
+                    <h3 id="textCount">0</h3>
+                    <p>Text</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div id="alertContainer"></div>
+
+        <!-- Rename Section -->
+        <div id="renameSection" class="rename-section hidden">
+            <h3>✏️ Rename Column Variables</h3>
+            <p>Enter new names for the columns you want to rename. Leave blank to keep the original name.</p>
+            
+            <div id="columnList"></div>
+            
+            <div style="margin-top: 2rem; text-align: center;">
+                <button class="btn btn-primary" onclick="renameVariables()">✏️ Rename Variables</button>
+                <button class="btn btn-secondary" onclick="resetFile()" style="margin-left: 1rem;">🔄 Upload New File</button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="results-section hidden">
+            <h3>📊 Rename Results</h3>
+            
+            <h4>📋 Rename Summary</h4>
+            <div id="renameSummary"></div>
+            
+            <h4>📈 Dataset with Renamed Variables</h4>
+            <div class="data-preview">
+                <table class="data-table" id="dataTable"></table>
+            </div>
+            
+            <div class="comparison-section">
+                <div class="comparison-card">
+                    <h4>Original Columns</h4>
+                    <div class="column-list" id="originalColumns"></div>
+                </div>
+                <div class="comparison-card">
+                    <h4>New Columns</h4>
+                    <div class="column-list" id="newColumns"></div>
+                </div>
+            </div>
+            
+            <h4>💾 Download Renamed Dataset</h4>
+            <div class="download-section">
+                <button class="btn btn-primary" onclick="downloadCSV()">📥 Download as CSV</button>
+                <button class="btn btn-primary" onclick="downloadExcel()">📥 Download as Excel</button>
+            </div>
+            
+            <div style="text-align: center; margin-top: 2rem;">
+                <button class="btn btn-secondary" onclick="backToRename()">✏️ Rename Different Variables</button>
+            </div>
+        </div>
+
+        <!-- Features Section (shown when no file uploaded) -->
+        <div id="featuresSection">
+            <h3>ℹ️ How It Works</h3>
+            <div class="features-section">
+                <div class="feature-card">
+                    <h4>Renaming Process:</h4>
+                    <ol>
+                        <li><strong>Upload File:</strong> CSV or Excel file with your data</li>
+                        <li><strong>View Columns:</strong> See all column names with their data types</li>
+                        <li><strong>Enter New Names:</strong> Type new names for columns you want to rename</li>
+                        <li><strong>Validate:</strong> Automatic checking for duplicates and conflicts</li>
+                        <li><strong>Apply Changes:</strong> Generate dataset with new column names</li>
+                    </ol>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>Features:</h4>
+                    <ul>
+                        <li>📊 Visual column type indicators</li>
+                        <li>✅ Duplicate name validation</li>
+                        <li>🔄 Before/after comparison</li>
+                        <li>📋 Detailed rename log</li>
+                        <li>💾 Excel and CSV downloads</li>
+                    </ul>
+                    <br>
+                    <h4>Supported Formats:</h4>
+                    <ul>
+                        <li>📄 CSV files</li>
+                        <li>📊 Excel files (.xlsx, .xls)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align: center; color: #666; padding: 2rem; margin-top: 3rem; border-top: 1px solid #ddd;">
+        <p>✏️ Built with HTML, CSS & JavaScript | Variable Rename Tool v2.0</p>
+    </footer>
+
+    <script>
+        let currentData = null;
+        let originalColumns = [];
+        let renamedData = null;
+        let renameMapping = {};
+
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+
+            if (fileExtension === 'csv') {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        processData(results.data, fileName);
+                    },
+                    error: function(error) {
+                        showAlert('Error reading CSV file: ' + error.message, 'error');
+                    }
+                });
+            } else if (['xlsx', 'xls'].includes(fileExtension)) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        processData(jsonData, fileName);
+                    } catch (error) {
+                        showAlert('Error reading Excel file: ' + error.message, 'error');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                showAlert('Unsupported file type. Please upload CSV or Excel files.', 'error');
+                return;
+            }
+        }
+
+        function processData(data, fileName) {
+            if (!data || data.length === 0) {
+                showAlert('The file appears to be empty or invalid.', 'error');
+                return;
+            }
+
+            currentData = data;
+            originalColumns = Object.keys(data[0]);
+            
+            showAlert('✅ File uploaded successfully!', 'success');
+            
+            // Update file info
+            updateFileStats(data, fileName);
+            
+            // Show rename section
+            createRenameInterface();
+            
+            // Hide upload section and show file info
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('featuresSection').style.display = 'none';
+            document.getElementById('fileInfo').classList.remove('hidden');
+            document.getElementById('renameSection').classList.remove('hidden');
+        }
+
+        function updateFileStats(data, fileName) {
+            const rowCount = data.length;
+            const colCount = originalColumns.length;
+            let numericCount = 0;
+            let textCount = 0;
+
+            // Analyze column types
+            originalColumns.forEach(col => {
+                if (isNumericColumn(data, col)) {
+                    numericCount++;
+                } else {
+                    textCount++;
+                }
+            });
+
+            document.getElementById('rowCount').textContent = rowCount.toLocaleString();
+            document.getElementById('colCount').textContent = colCount;
+            document.getElementById('numericCount').textContent = numericCount;
+            document.getElementById('textCount').textContent = textCount;
+        }
+
+        function isNumericColumn(data, columnName) {
+            const sample = data.slice(0, 100); // Sample first 100 rows
+            let numericCount = 0;
+            
+            for (let row of sample) {
+                const value = row[columnName];
+                if (value !== null && value !== undefined && value !== '' && !isNaN(Number(value))) {
+                    numericCount++;
+                }
+            }
+            
+            return numericCount / sample.length > 0.7; // 70% numeric threshold
+        }
+
+        function getColumnType(data, columnName) {
+            if (isNumericColumn(data, columnName)) {
+                return { type: 'Numeric', class: 'numeric' };
+            } else {
+                // Check if it might be datetime (basic check)
+                const sample = data[0][columnName];
+                if (sample && (sample.includes('/') || sample.includes('-')) && new Date(sample).toString() !== 'Invalid Date') {
+                    return { type: 'DateTime', class: 'datetime' };
+                }
+                return { type: 'Text', class: 'text' };
+            }
+        }
+
+        function createRenameInterface() {
+            const container = document.getElementById('columnList');
+            container.innerHTML = '';
+
+            originalColumns.forEach((column, index) => {
+                const columnType = getColumnType(currentData, column);
+                
+                const row = document.createElement('div');
+                row.className = 'column-rename-row';
+                
+                row.innerHTML = `
+                    <div class="column-original">
+                        <strong>${column}</strong>
+                        <span class="column-type-badge ${columnType.class}">${columnType.type}</span>
+                    </div>
+                    <div class="column-new">
+                        <input type="text" id="rename_${index}" placeholder="Enter new name for '${column}'">
+                    </div>
+                `;
+                
+                container.appendChild(row);
+            });
+        }
+
+        function renameVariables() {
+            const newNames = {};
+            let hasChanges = false;
+
+            // Collect new names
+            originalColumns.forEach((column, index) => {
+                const input = document.getElementById(`rename_${index}`);
+                const newName = input.value.trim();
+                if (newName && newName !== column) {
+                    newNames[column] = newName;
+                    hasChanges = true;
+                }
+            });
+
+            if (!hasChanges) {
+                showAlert('⚠️ No column names to change. Please enter at least one new name.', 'warning');
+                return;
+            }
+
+            // Validate new names
+            const validation = validateNewNames(newNames);
+            
+            if (validation.errors.length > 0) {
+                validation.errors.forEach(error => {
+                    showAlert('❌ ' + error, 'error');
+                });
+                return;
+            }
+
+            if (validation.warnings.length > 0) {
+                validation.warnings.forEach(warning => {
+                    showAlert('⚠️ ' + warning, 'warning');
+                });
+            }
+
+            // Apply renaming
+            try {
+                renamedData = applyRenaming(currentData, newNames);
+                renameMapping = newNames;
+                
+                showAlert('✅ Variables renamed successfully!', 'success');
+                showResults();
+            } catch (error) {
+                showAlert('❌ Error renaming variables: ' + error.message, 'error');
+            }
+        }
+
+        function validateNewNames(newNames) {
+            const errors = [];
+            const warnings = [];
+            const newNameValues = Object.values(newNames);
+            const allFinalNames = [...newNameValues, ...originalColumns.filter(col => !newNames[col])];
+
+            // Check for duplicates
+            const nameCount = {};
+            allFinalNames.forEach(name => {
+                nameCount[name] = (nameCount[name] || 0) + 1;
+            });
+
+            Object.entries(nameCount).forEach(([name, count]) => {
+                if (count > 1) {
+                    errors.push(`Duplicate column name '${name}' found`);
+                }
+            });
+
+            // Check for invalid characters
+            const invalidChars = ['/', '\\', '?', '*', '[', ']', ':', '<', '>', '|'];
+            Object.entries(newNames).forEach(([oldName, newName]) => {
+                if (invalidChars.some(char => newName.includes(char))) {
+                    warnings.push(`Column '${newName}' contains special characters that may cause issues`);
+                }
+            });
+
+            return { errors, warnings };
+        }
+
+        function applyRenaming(data, nameMapping) {
+            return data.map(row => {
+                const newRow = {};
+                Object.entries(row).forEach(([key, value]) => {
+                    const newKey = nameMapping[key] || key;
+                    newRow[newKey] = value;
+                });
+                return newRow;
+            });
+        }
+
+        function showResults() {
+            // Hide rename section, show results
+            document.getElementById('renameSection').classList.add('hidden');
+            document.getElementById('resultsSection').classList.remove('hidden');
+
+            // Show rename summary
+            const summaryContainer = document.getElementById('renameSummary');
+            summaryContainer.innerHTML = '';
+            
+            Object.entries(renameMapping).forEach(([oldName, newName]) => {
+                const div = document.createElement('div');
+                div.className = 'rename-summary';
+                div.innerHTML = `<strong>Renamed:</strong> <code>${oldName}</code> → <code>${newName}</code>`;
+                summaryContainer.appendChild(div);
+            });
+
+            const totalRenamed = Object.keys(renameMapping).length;
+            const totalUnchanged = originalColumns.length - totalRenamed;
+            
+            summaryContainer.insertAdjacentHTML('beforeend', `
+                <p><strong>Total columns renamed:</strong> ${totalRenamed}</p>
+                <p><strong>Unchanged columns:</strong> ${totalUnchanged}</p>
+            `);
+
+            // Show data table
+            createDataTable();
+            
+            // Show column comparison
+            showColumnComparison();
+        }
+
+        function createDataTable() {
+            const table = document.getElementById('dataTable');
+            table.innerHTML = '';
+
+            if (!renamedData || renamedData.length === 0) return;
+
+            // Create header
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            
+            Object.keys(renamedData[0]).forEach(column => {
+                const th = document.createElement('th');
+                th.textContent = column;
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // Create body with first 100 rows
+            const tbody = document.createElement('tbody');
+            const displayData = renamedData.slice(0, 100);
+            
+            displayData.forEach(row => {
+                const tr = document.createElement('tr');
+                Object.values(row).forEach(value => {
+                    const td = document.createElement('td');
+                    td.textContent = value || '';
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            
+            table.appendChild(tbody);
+
+            if (renamedData.length > 100) {
+                table.insertAdjacentHTML('afterend', `<p><em>Showing first 100 rows of ${renamedData.length} total rows</em></p>`);
+            }
+        }
+
+        function showColumnComparison() {
+            const originalContainer = document.getElementById('originalColumns');
+            const newContainer = document.getElementById('newColumns');
+            
+            originalContainer.innerHTML = '';
+            newContainer.innerHTML = '';
+
+            // Original columns
+            originalColumns.forEach(col => {
+                const div = document.createElement('div');
+                div.className = 'column-item';
+                const status = renameMapping[col] ? '→ Renamed' : '✓ Unchanged';
+                div.innerHTML = `<code>${col}</code> ${status}`;
+                originalContainer.appendChild(div);
+            });
+
+            // New columns
+            Object.keys(renamedData[0]).forEach(col => {
+                const div = document.createElement('div');
+                div.className = 'column-item';
+                
+                // Find original name
+                const originalName = Object.entries(renameMapping).find(([old, new_]) => new_ === col)?.[0];
+                
+                if (originalName) {
+                    div.innerHTML = `<code>${col}</code> ← Renamed from <code>${originalName}</code>`;
+                } else {
+                    div.innerHTML = `<code>${col}</code> ✓ Unchanged`;
+                }
+                
+                newContainer.appendChild(div);
+            });
+        }
+
+        function downloadCSV() {
+            if (!renamedData) return;
+
+            const csv = Papa.unparse(renamedData);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `renamed_variables_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadExcel() {
+            if (!renamedData) return;
+
+            // Create workbook with renamed data
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(renamedData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Renamed_Data');
+
+            // Create rename log sheet
+            const logData = Object.entries(renameMapping).map(([oldName, newName]) => ({
+                Original_Name: oldName,
+                New_Name: newName,
+                Rename_Date: new Date().toISOString()
+            }));
+            
+            if (logData.length > 0) {
+                const logWs = XLSX.utils.json_to_sheet(logData);
+                XLSX.utils.book_append_sheet(wb, logWs, 'Rename_Log');
+            }
+
+            // Download file
+            XLSX.writeFile(wb, `renamed_variables_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
+        }
+
+        function backToRename() {
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('renameSection').classList.remove('hidden');
+            
+            // Clear previous rename data
+            renamedData = null;
+            renameMapping = {};
+        }
+
+        function resetFile() {
+            // Reset all data
+            currentData = null;
+            originalColumns = [];
+            renamedData = null;
+            renameMapping = {};
+            
+            // Reset UI
+            document.getElementById('uploadSection').style.display = 'block';
+            document.getElementById('featuresSection').style.display = 'block';
+            document.getElementById('fileInfo').classList.add('hidden');
+            document.getElementById('renameSection').classList.add('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('fileInput').value = '';
+            document.getElementById('alertContainer').innerHTML = '';
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
