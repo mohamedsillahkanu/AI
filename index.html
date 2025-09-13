@@ -382,7 +382,7 @@
         <!-- Upload Section -->
         <div class="upload-section">
             <h3>Data Upload</h3>
-            <p>Upload your health facility data file. Expected columns: adm1, adm3, date, report_conf, hf_expected_to_report_month</p>
+            <p>Upload your health facility data file. Expected columns: adm1, adm3, month, year, report_conf, hf_expected_to_report_month</p>
             
             <div class="file-input-wrapper">
                 <label class="file-input">
@@ -519,9 +519,16 @@
                 reader.onload = function(e) {
                     try {
                         const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, {type: 'array'});
+                        const workbook = XLSX.read(data, {
+                            type: 'array',
+                            cellDates: true,  // Parse Excel dates properly
+                            dateNF: 'yyyy-mm-dd'  // Set date format
+                        });
                         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, {
+                            raw: false,  // Don't use raw values (helps with dates)
+                            dateNF: 'yyyy-mm-dd'
+                        });
                         processData(jsonData);
                     } catch (error) {
                         showAlert('Error reading Excel file: ' + error.message, 'error');
@@ -559,7 +566,7 @@
         }
 
         function validateData(data) {
-            const requiredCols = ['adm1', 'adm3', 'date', 'report_conf', 'hf_expected_to_report_month'];
+            const requiredCols = ['adm1', 'adm3', 'month', 'year', 'report_conf', 'hf_expected_to_report_month'];
             const availableCols = Object.keys(data[0] || {});
             const missingCols = requiredCols.filter(col => !availableCols.includes(col));
             
@@ -571,9 +578,28 @@
             data.forEach(row => {
                 row.report_conf = Number(row.report_conf) || 0;
                 row.hf_expected_to_report_month = Number(row.hf_expected_to_report_month) || 0;
+                
+                // Create YYYY-MM date from month and year columns
+                const year = Number(row.year) || new Date().getFullYear();
+                const month = Number(row.month) || 1;
+                
+                // Ensure month is between 1-12
+                if (month < 1 || month > 12) {
+                    showAlert(`Invalid month value: ${month}. Month should be between 1-12.`, 'error');
+                    return false;
+                }
+                
+                // Create YYYY-MM format
+                row.date = `${year}-${String(month).padStart(2, '0')}`;
             });
 
             return true;
+        }
+
+        function formatDateToYYYYMM(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
         }
 
         function calculateReportingRates() {
@@ -638,7 +664,12 @@
             }
             
             const districts = [...new Set(regionData.map(row => row.adm3))].sort();
-            const dates = [...new Set(regionData.map(row => row.date))].sort();
+            const dates = [...new Set(regionData.map(row => row.date))].sort((a, b) => {
+                // Sort dates chronologically
+                const dateA = new Date(a + '-01'); // Add day for proper date parsing
+                const dateB = new Date(b + '-01');
+                return dateA - dateB;
+            });
             
             // Sort districts by average reporting rate (descending)
             const districtAvgs = districts.map(district => {
@@ -746,7 +777,7 @@
                 ctx.fillText(label, startX - 12, startY + districtIndex * cellHeight + cellHeight/2 + 5);
             });
             
-            // X-axis labels (Dates)
+            // X-axis labels (Dates) - display exactly as they are
             ctx.fillStyle = '#1e293b';
             ctx.font = 'bold 11px Arial';
             ctx.textAlign = 'center';
@@ -760,9 +791,8 @@
                     ctx.save();
                     ctx.translate(startX + dateIndex * cellWidth + cellWidth/2, startY + heatmapHeight + 20);
                     ctx.rotate(-Math.PI/4);
-                    // Ensure date is displayed as string in YYYY-MM format
-                    const dateLabel = String(date).trim();
-                    ctx.fillText(dateLabel, 0, 0);
+                    // Display date exactly as it is in the data - no processing
+                    ctx.fillText(date, 0, 0);
                     ctx.restore();
                 }
             });
