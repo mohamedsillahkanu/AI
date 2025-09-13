@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Individual Region Health Facility Analysis - Blue Dark Theme</title>
+    <title>Individual District Health Facility Analysis - Blue Dark Theme</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
@@ -416,7 +416,7 @@
                 <div class="metric-card">
                     <h4>Time Periods</h4>
                     <div class="metric-value" id="totalDates">0</div>
-                    <p>Reporting months</p>
+                    <p>Reporting periods</p>
                 </div>
                 <div class="metric-card">
                     <h4>Overall Avg Rate</h4>
@@ -571,81 +571,18 @@
             data.forEach(row => {
                 row.report_conf = Number(row.report_conf) || 0;
                 row.hf_expected_to_report_month = Number(row.hf_expected_to_report_month) || 0;
-                
-                if (typeof row.date === 'string') {
-                    const dateObj = new Date(row.date);
-                    if (!isNaN(dateObj.getTime())) {
-                        row.date = dateObj;
-                    }
-                }
             });
 
             return true;
         }
 
         function calculateReportingRates() {
-            const grouped = {};
-            
-            processedData.forEach(row => {
-                const dateKey = formatDate(row.date);
-                const key = `${row.adm1}|${row.adm3}|${dateKey}`;
-                
-                if (!grouped[key]) {
-                    grouped[key] = {
-                        adm1: row.adm1,
-                        adm3: row.adm3,
-                        date: dateKey,
-                        report_conf_sum: 0,
-                        hf_expected_sum: 0
-                    };
-                }
-                
-                grouped[key].report_conf_sum += row.report_conf;
-                grouped[key].hf_expected_sum += row.hf_expected_to_report_month;
-            });
-            
-            groupedData = Object.values(grouped).map(row => ({
+            // Keep the original data structure but add reporting rate calculation
+            groupedData = processedData.map(row => ({
                 ...row,
-                reporting_rate: row.hf_expected_sum > 0 ? 
-                    Math.round((row.report_conf_sum / row.hf_expected_sum) * 100 * 100) / 100 : 0
+                reporting_rate: row.hf_expected_to_report_month > 0 ? 
+                    Math.round((row.report_conf / row.hf_expected_to_report_month) * 100 * 100) / 100 : 0
             }));
-        }
-
-        function formatDate(date) {
-            if (date instanceof Date) {
-                const year = date.getFullYear();
-                const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                return `${year}-${month}`;
-            }
-            
-            const str = date.toString();
-            
-            // Handle various date formats
-            if (str.includes('-')) {
-                // Format: YYYY-MM-DD or YYYY-MM
-                const parts = str.split('-');
-                if (parts.length >= 2) {
-                    const year = parts[0];
-                    const month = parts[1].padStart(2, '0');
-                    return `${year}-${month}`;
-                }
-            } else if (str.includes('/')) {
-                // Format: MM/DD/YYYY or MM/YYYY
-                const parts = str.split('/');
-                if (parts.length >= 2) {
-                    const month = parts[0].padStart(2, '0');
-                    const year = parts.length === 3 ? parts[2] : parts[1];
-                    return `${year}-${month}`;
-                }
-            } else if (str.length === 6 && !isNaN(str)) {
-                // Format: YYYYMM
-                const year = str.substring(0, 4);
-                const month = str.substring(4, 6);
-                return `${year}-${month}`;
-            }
-            
-            // If none of the above formats match, return as is
-            return str;
         }
 
         function updateDataSummary() {
@@ -689,19 +626,6 @@
             }
         }
 
-        function sortDatesChronologically(dates) {
-            return dates.sort((a, b) => {
-                // Parse dates in YYYY-MM format
-                const [yearA, monthA] = a.split('-').map(Number);
-                const [yearB, monthB] = b.split('-').map(Number);
-                
-                if (yearA !== yearB) {
-                    return yearA - yearB;
-                }
-                return monthA - monthB;
-            });
-        }
-
         function generateRegionHeatmap(regionName) {
             const canvas = document.getElementById('heatmapCanvas');
             const ctx = canvas.getContext('2d');
@@ -714,9 +638,9 @@
             }
             
             const districts = [...new Set(regionData.map(row => row.adm3))].sort();
-            const unsortedDates = [...new Set(regionData.map(row => row.date))];
-            const dates = sortDatesChronologically(unsortedDates);
+            const dates = [...new Set(regionData.map(row => row.date))].sort();
             
+            // Sort districts by average reporting rate (descending)
             const districtAvgs = districts.map(district => {
                 const districtData = regionData.filter(row => row.adm3 === district);
                 const avgRate = districtData.reduce((sum, row) => sum + row.reporting_rate, 0) / districtData.length;
@@ -726,7 +650,7 @@
             districtAvgs.sort((a, b) => b.avgRate - a.avgRate);
             const sortedDistricts = districtAvgs.map(item => item.district);
             
-            document.getElementById('chartTitle').textContent = `Monthly Reporting Rate by District (${regionName})`;
+            document.getElementById('chartTitle').textContent = `Reporting Rate by District and Date (${regionName})`;
             
             // Calculate flexible dimensions
             const minCellWidth = 25;
@@ -776,7 +700,7 @@
             ctx.textAlign = 'center';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
             ctx.shadowBlur = 4;
-            ctx.fillText(`Monthly Reporting Rate by District (${regionName})`, canvasWidth / 2, 35);
+            ctx.fillText(`Reporting Rate by District and Date (${regionName})`, canvasWidth / 2, 35);
             ctx.shadowBlur = 0;
             
             drawLegend(ctx, canvasWidth / 2, 70);
@@ -795,12 +719,12 @@
             ctx.fillStyle = '#64748b';
             ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Time Period (Month-Year)', startX + heatmapWidth / 2, canvasHeight - 25);
+            ctx.fillText('Date', startX + heatmapWidth / 2, canvasHeight - 25);
             
             // Draw heatmap cells
             sortedDistricts.forEach((district, districtIndex) => {
                 dates.forEach((date, dateIndex) => {
-                    const dataPoint = regionData.find(row => row.adm3 === district && row.date === date);
+                    const dataPoint = regionData.find(row => row.adm3 === district && row.date == date);
                     const rate = dataPoint ? dataPoint.reporting_rate : 0;
                     
                     const cellX = startX + dateIndex * cellWidth;
@@ -822,7 +746,7 @@
                 ctx.fillText(label, startX - 12, startY + districtIndex * cellHeight + cellHeight/2 + 5);
             });
             
-            // X-axis labels (Dates) - Improved date display logic
+            // X-axis labels (Dates)
             ctx.fillStyle = '#1e293b';
             ctx.font = 'bold 11px Arial';
             ctx.textAlign = 'center';
@@ -836,8 +760,8 @@
                     ctx.save();
                     ctx.translate(startX + dateIndex * cellWidth + cellWidth/2, startY + heatmapHeight + 20);
                     ctx.rotate(-Math.PI/4);
-                    // Format date for display (e.g., "2015-01" stays as "2015-01")
-                    ctx.fillText(date, 0, 0);
+                    // Display original date values
+                    ctx.fillText(String(date), 0, 0);
                     ctx.restore();
                 }
             });
@@ -939,8 +863,8 @@
             const numDistricts = new Set(regionData.map(row => row.adm3)).size;
             const maxRate = Math.max(...regionData.map(row => row.reporting_rate)).toFixed(1);
             const minRate = Math.min(...regionData.map(row => row.reporting_rate)).toFixed(1);
-            const totalReports = regionData.reduce((sum, row) => sum + row.report_conf_sum, 0);
-            const totalExpected = regionData.reduce((sum, row) => sum + row.hf_expected_sum, 0);
+            const totalReports = regionData.reduce((sum, row) => sum + row.report_conf, 0);
+            const totalExpected = regionData.reduce((sum, row) => sum + row.hf_expected_to_report_month, 0);
             
             statsGrid.innerHTML = `
                 <div class="metric-card">
@@ -1034,7 +958,7 @@
             report += `District,Date,Reporting Rate (%),Reports Confirmed,Expected Reports\n`;
             
             regionData.forEach(row => {
-                report += `${row.adm3},${row.date},${row.reporting_rate},${row.report_conf_sum},${row.hf_expected_sum}\n`;
+                report += `${row.adm3},${row.date},${row.reporting_rate},${row.report_conf},${row.hf_expected_to_report_month}\n`;
             });
             
             downloadFile(report, `${selectedRegion.replace(/\s+/g, '_')}_full_report.txt`, 'text/plain');
