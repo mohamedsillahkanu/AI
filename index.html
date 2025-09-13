@@ -724,7 +724,7 @@
             // Draw heatmap cells
             sortedDistricts.forEach((district, districtIndex) => {
                 dates.forEach((date, dateIndex) => {
-                    const dataPoint = regionData.find(row => row.adm3 === district && row.date == date);
+                    const dataPoint = regionData.find(row => row.adm3 === district && String(row.date) === String(date));
                     const rate = dataPoint ? dataPoint.reporting_rate : 0;
                     
                     const cellX = startX + dateIndex * cellWidth;
@@ -760,8 +760,9 @@
                     ctx.save();
                     ctx.translate(startX + dateIndex * cellWidth + cellWidth/2, startY + heatmapHeight + 20);
                     ctx.rotate(-Math.PI/4);
-                    // Display original date values
-                    ctx.fillText(String(date), 0, 0);
+                    // Ensure date is displayed as string in YYYY-MM format
+                    const dateLabel = String(date).trim();
+                    ctx.fillText(dateLabel, 0, 0);
                     ctx.restore();
                 }
             });
