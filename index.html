@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Facility Reporting Analysis</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <title>Health Facility Heatmap Demo</title>
     <style>
         * {
             margin: 0;
@@ -15,865 +12,349 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
             line-height: 1.6;
+            color: #e1effe;
+            background: linear-gradient(135deg, #0a0e1a 0%, #0f1629 25%, #1a237e 75%, #1565c0 100%);
+            min-height: 100vh;
+            padding: 2rem;
         }
 
-        .main-header {
+        .demo-header {
             text-align: center;
-            padding: 3rem 0;
-            background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);
+            padding: 2rem 0;
             color: white;
             margin-bottom: 2rem;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
         }
 
-        .main-header h1 {
+        .demo-header h1 {
             font-size: 2.5rem;
             margin-bottom: 0.5rem;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
         }
 
-        .main-header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-        }
-
-        .container {
-            max-width: 1400px;
+        .demo-container {
+            max-width: 1600px;
             margin: 0 auto;
-            padding: 0 1rem;
-        }
-
-        .upload-section {
-            background: white;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+            backdrop-filter: blur(15px);
             padding: 2rem;
             border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin: 2rem 0;
-            border-left: 4px solid #4CAF50;
-        }
-
-        .upload-section h3 {
-            color: #2E7D32;
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            display: inline-block;
-            margin: 1rem 0;
-        }
-
-        .file-input {
-            display: inline-block;
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-            color: white;
-            border-radius: 30px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
-        }
-
-        .file-input:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.6);
-        }
-
-        .file-input input[type="file"] {
-            position: absolute;
-            left: -9999px;
-        }
-
-        .metric-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 2rem 0;
-        }
-
-        .metric-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border-top: 4px solid #4CAF50;
-            transition: transform 0.2s ease;
-        }
-
-        .metric-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .metric-card h4 {
-            color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .metric-card .metric-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #2E7D32;
-            margin-bottom: 0.5rem;
-        }
-
-        .metric-card p {
-            color: #888;
-            font-size: 0.85rem;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            margin: 0.5rem 0.5rem 0.5rem 0;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
-        }
-
-        .btn-secondary:hover {
-            transform: translateY(-2px);
-            background: linear-gradient(135deg, #495057 0%, #343a40 100%);
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(46, 125, 50, 0.1) 100%);
-            border-left: 4px solid #4CAF50;
-            color: #2E7D32;
-        }
-
-        .alert-error {
-            background: linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(211, 47, 47, 0.1) 100%);
-            border-left: 4px solid #f44336;
-            color: #d32f2f;
-        }
-
-        .alert-info {
-            background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(21, 101, 192, 0.1) 100%);
-            border-left: 4px solid #2196F3;
-            color: #1565C0;
-        }
-
-        .results-section {
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin: 2rem 0;
-        }
-
-        .chart-container {
-            margin: 2rem 0;
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(37, 99, 235, 0.2);
         }
 
         .chart-title {
-            text-align: center;
-            color: #2E7D32;
-            font-size: 1.5rem;
+            color: #93c5fd;
+            font-size: 1.8rem;
             font-weight: bold;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
         }
 
-        .heatmap-canvas {
-            width: 100%;
-            height: 800px;
-            border-radius: 8px;
-            background: white;
-        }
-
-        .data-table-container {
-            max-height: 400px;
-            overflow: auto;
-            margin: 1rem 0;
-            border: 1px solid #e1e5e9;
-            border-radius: 8px;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-        }
-
-        .data-table th,
-        .data-table td {
-            padding: 10px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e1e5e9;
-        }
-
-        .data-table th {
-            background: #f8f9fa;
-            position: sticky;
-            top: 0;
-            font-weight: 600;
-            color: #2E7D32;
-        }
-
-        .data-table tr:hover {
-            background: rgba(76, 175, 80, 0.05);
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #4CAF50;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .download-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
+        .canvas-container {
+            text-align: center;
             margin: 2rem 0;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            overflow-x: auto;
         }
 
-        @media (max-width: 768px) {
-            .main-header h1 {
-                font-size: 2rem;
-            }
+        #demoCanvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 8px;
+        }
+
+        .demo-info {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(2, 132, 199, 0.15) 100%);
+            border-left: 4px solid #0ea5e9;
+            border-radius: 10px;
+            color: #7dd3fc;
+        }
+
+        .demo-info h3 {
+            margin-bottom: 1rem;
+            color: #93c5fd;
+        }
+
+        .demo-info ul {
+            margin-left: 1.5rem;
+        }
+
+        .demo-info li {
+            margin-bottom: 0.5rem;
         }
     </style>
 </head>
 <body>
-    <div class="main-header">
-        <h1>Health Facility Reporting Status Analysis</h1>
-        <p>Simplified visualization for health facility reporting patterns by region</p>
+    <div class="demo-header">
+        <h1>Health Facility Heatmap Demo</h1>
+        <p>Example visualization showing clear text and labels</p>
     </div>
 
-    <div class="container">
-        <!-- Upload Section -->
-        <div class="upload-section">
-            <h3>Data Upload</h3>
-            <p>Upload your health facility data file (CSV, Excel). Required columns: hf_uid, allout, susp, test, conf, maltreat, Date (or month/year)</p>
-            
-            <div class="file-input-wrapper">
-                <label class="file-input">
-                    Choose File
-                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
-                </label>
-            </div>
-            
-            <div id="uploadProgress" class="hidden">
-                <div class="loading-spinner"></div>
-                <p>Processing your file...</p>
-            </div>
+    <div class="demo-container">
+        <div class="chart-title">Regional Health Facility Reporting Status - Sample Data</div>
+        
+        <div class="canvas-container">
+            <canvas id="demoCanvas"></canvas>
         </div>
 
-        <!-- Alerts Container -->
-        <div id="alertContainer"></div>
-
-        <!-- Data Summary -->
-        <div id="dataSummary" class="hidden">
-            <div class="metric-grid">
-                <div class="metric-card">
-                    <h4>Health Facilities</h4>
-                    <div class="metric-value" id="totalHFs">0</div>
-                    <p>Unique facilities</p>
-                </div>
-                <div class="metric-card">
-                    <h4>Time Periods</h4>
-                    <div class="metric-value" id="totalMonths">0</div>
-                    <p>Unique months</p>
-                </div>
-                <div class="metric-card">
-                    <h4>Total Records</h4>
-                    <div class="metric-value" id="totalRecords">0</div>
-                    <p>Data points</p>
-                </div>
-                <div class="metric-card">
-                    <h4>Reporting Rate</h4>
-                    <div class="metric-value" id="reportingRate">0%</div>
-                    <p>Overall rate</p>
-                </div>
-            </div>
-            
-            <!-- Generate Button -->
-            <div style="text-align: center; margin: 2rem 0;">
-                <button class="btn btn-primary" onclick="generateAnalysis()">Generate Analysis</button>
-            </div>
+        <div class="demo-info">
+            <h3>Key Features Demonstrated:</h3>
+            <ul>
+                <li><strong>Clear Text Labels:</strong> District names and dates are clearly readable with appropriate font sizes</li>
+                <li><strong>Color Legend:</strong> Shows reporting rate scale from 0% (red) to 100% (green)</li>
+                <li><strong>Proper Spacing:</strong> Adequate margins and cell sizes for readability</li>
+                <li><strong>Rotated Date Labels:</strong> Diagonal text prevents overlap for multiple time periods</li>
+                <li><strong>Truncated Long Names:</strong> District names are shortened with "..." when too long</li>
+                <li><strong>High Contrast:</strong> White background with dark text for maximum visibility</li>
+                <li><strong>Grid Lines:</strong> Subtle grid lines help identify specific data points</li>
+            </ul>
         </div>
-
-        <!-- Results Section -->
-        <div id="resultsSection" class="hidden">
-            <div id="chartsContainer"></div>
-            
-            <!-- Regional Statistics -->
-            <div class="results-section">
-                <h3>Regional Statistics</h3>
-                <div class="data-table-container">
-                    <table class="data-table" id="regionalStatsTable"></table>
-                </div>
-            </div>
-            
-            <!-- Download Section -->
-            <div class="results-section">
-                <h3>Download Results</h3>
-                <div class="download-section">
-                    <button class="btn btn-primary" onclick="downloadFullDataset()">Download Full Dataset (CSV)</button>
-                    <button class="btn btn-primary" onclick="downloadAnalysisReport()">Download Analysis Report</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div style="text-align: center; color: #666; padding: 2rem; margin-top: 3rem; border-top: 1px solid #e1e5e9;">
-        <p>Health Facility Reporting Status Analysis Tool | Built with HTML, CSS & JavaScript</p>
     </div>
 
     <script>
-        let currentData = null;
-        let processedData = null;
-        let analysisResults = null;
+        // Sample data for demonstration
+        const sampleData = {
+            region: "Sample Region",
+            districts: [
+                "District Alpha", "District Beta", "District Gamma", 
+                "District Delta", "District Epsilon", "District Zeta",
+                "District Eta", "District Theta", "District Iota",
+                "District Kappa", "District Lambda", "District Mu"
+            ],
+            dates: [
+                "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", 
+                "2024-06", "2024-07", "2024-08", "2024-09", "2024-10"
+            ],
+            // Random reporting rates for demonstration
+            reportingRates: [
+                [85, 92, 78, 88, 95, 82, 90, 87, 93, 89],
+                [76, 84, 91, 79, 86, 94, 81, 88, 85, 92],
+                [92, 88, 85, 93, 79, 87, 94, 82, 89, 86],
+                [68, 75, 82, 89, 76, 84, 91, 78, 85, 92],
+                [94, 87, 93, 85, 91, 88, 82, 95, 89, 86],
+                [81, 89, 76, 84, 92, 85, 88, 91, 87, 94],
+                [87, 82, 89, 95, 84, 91, 86, 88, 93, 85],
+                [73, 86, 91, 82, 88, 94, 89, 85, 92, 87],
+                [89, 93, 85, 91, 87, 82, 95, 88, 84, 90],
+                [84, 88, 92, 86, 93, 89, 85, 91, 87, 82],
+                [91, 85, 88, 93, 82, 87, 94, 89, 86, 91],
+                [78, 92, 86, 89, 94, 85, 88, 92, 87, 93]
+            ]
+        };
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-        });
-
-        function showAlert(message, type = 'info') {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
-            
-            alertContainer.appendChild(alertDiv);
-            
-            // Auto-remove after 5 seconds
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.parentNode.removeChild(alertDiv);
-                }
-            }, 5000);
-        }
-
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const fileName = file.name;
-            const fileExtension = fileName.split('.').pop().toLowerCase();
-
-            // Show progress
-            document.getElementById('uploadProgress').classList.remove('hidden');
-
-            if (fileExtension === 'csv') {
-                Papa.parse(file, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: function(results) {
-                        processData(results.data, fileName);
-                    },
-                    error: function(error) {
-                        showAlert('Error reading CSV file: ' + error.message, 'error');
-                        document.getElementById('uploadProgress').classList.add('hidden');
-                    }
-                });
-            } else if (['xlsx', 'xls'].includes(fileExtension)) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, {type: 'array'});
-                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                        processData(jsonData, fileName);
-                    } catch (error) {
-                        showAlert('Error reading Excel file: ' + error.message, 'error');
-                        document.getElementById('uploadProgress').classList.add('hidden');
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            } else {
-                showAlert('Unsupported file type. Please upload CSV or Excel files.', 'error');
-                document.getElementById('uploadProgress').classList.add('hidden');
-                return;
-            }
-        }
-
-        function processData(data, fileName) {
-            document.getElementById('uploadProgress').classList.add('hidden');
-            
-            if (!data || data.length === 0) {
-                showAlert('The file appears to be empty or invalid.', 'error');
-                return;
-            }
-
-            currentData = data;
-            
-            if (!validateData(data)) {
-                return;
-            }
-
-            showAlert('File uploaded successfully!', 'success');
-            
-            // Update UI
-            updateDataSummary();
-            
-            // Show sections
-            document.getElementById('dataSummary').classList.remove('hidden');
-        }
-
-        function validateData(data) {
-            const requiredCols = ['hf_uid', 'allout', 'susp', 'test', 'conf', 'maltreat'];
-            const availableCols = Object.keys(data[0] || {});
-            const missingCols = requiredCols.filter(col => !availableCols.includes(col));
-            
-            if (missingCols.length > 0) {
-                showAlert(`Missing required columns: ${missingCols.join(', ')}`, 'error');
-                return false;
-            }
-            
-            // Create Date column if needed
-            if (!availableCols.includes('Date')) {
-                if (availableCols.includes('month') && availableCols.includes('year')) {
-                    try {
-                        showAlert('Creating Date column from month and year...', 'info');
-                        data.forEach(row => {
-                            const month = parseInt(row.month);
-                            const year = parseInt(row.year);
-                            if (month >= 1 && month <= 12 && year > 1900) {
-                                row.Date = `${year}-${month.toString().padStart(2, '0')}`;
-                            } else {
-                                throw new Error('Invalid month or year values');
-                            }
-                        });
-                        showAlert('Successfully created Date column', 'success');
-                    } catch (error) {
-                        showAlert('Error creating Date column: ' + error.message, 'error');
-                        return false;
-                    }
-                } else if (availableCols.includes('year_mon')) {
-                    try {
-                        showAlert('Using year_mon as Date column...', 'info');
-                        data.forEach(row => {
-                            row.Date = row.year_mon.toString();
-                        });
-                        showAlert('Successfully used year_mon as Date column', 'success');
-                    } catch (error) {
-                        showAlert('Error using year_mon as Date: ' + error.message, 'error');
-                        return false;
-                    }
-                } else {
-                    showAlert('No Date, month/year, or year_mon columns found', 'error');
-                    return false;
-                }
-            }
-            
-            // Create ADM1 regions if needed
-            if (!availableCols.includes('adm1')) {
-                showAlert('Creating artificial ADM1 regions...', 'info');
-                const uniqueHFs = [...new Set(data.map(row => row.hf_uid))];
-                const nGroups = Math.min(16, Math.max(4, Math.floor(uniqueHFs.length / 10)));
-                const groupSize = Math.ceil(uniqueHFs.length / nGroups);
-                
-                const adm1Mapping = {};
-                uniqueHFs.sort().forEach((hf, index) => {
-                    const groupNum = Math.floor(index / groupSize);
-                    adm1Mapping[hf] = `Region_${(groupNum + 1).toString().padStart(2, '0')}`;
-                });
-                
-                data.forEach(row => {
-                    row.adm1 = adm1Mapping[row.hf_uid];
-                });
-                
-                showAlert(`Created ${nGroups} artificial ADM1 regions`, 'success');
-            }
-            
-            // Convert numeric columns
-            const numericCols = ['allout', 'susp', 'test', 'conf', 'maltreat'];
-            numericCols.forEach(col => {
-                data.forEach(row => {
-                    row[col] = isNaN(Number(row[col])) ? 0 : Number(row[col]);
-                });
-            });
-            
-            processedData = data;
-            return true;
-        }
-
-        function updateDataSummary() {
-            if (!processedData) return;
-            
-            const selectedVariables = ['allout', 'susp', 'test', 'conf', 'maltreat'];
-            const dataWithStatus = processedData.map(row => {
-                const totalCases = selectedVariables.reduce((sum, col) => sum + (row[col] || 0), 0);
-                return {
-                    ...row,
-                    has_reporting: totalCases > 0 ? 1 : 0
-                };
-            });
-            
-            const totalHFs = new Set(processedData.map(row => row.hf_uid)).size;
-            const totalMonths = new Set(processedData.map(row => row.Date)).size;
-            const totalRecords = processedData.length;
-            const reportingRate = ((dataWithStatus.reduce((sum, row) => sum + row.has_reporting, 0) / totalRecords) * 100).toFixed(2);
-            
-            document.getElementById('totalHFs').textContent = totalHFs.toLocaleString();
-            document.getElementById('totalMonths').textContent = totalMonths.toLocaleString();
-            document.getElementById('totalRecords').textContent = totalRecords.toLocaleString();
-            document.getElementById('reportingRate').textContent = `${reportingRate}%`;
-        }
-
-        function generateAnalysis() {
-            if (!processedData) {
-                showAlert('Please upload data first', 'error');
-                return;
-            }
-            
-            showAlert('Generating analysis...', 'info');
-            
-            try {
-                // Process data for analysis
-                analysisResults = createAnalysisResults(processedData);
-                
-                // Show results
-                showResults();
-                
-                showAlert('Analysis completed!', 'success');
-                
-            } catch (error) {
-                showAlert('Error generating analysis: ' + error.message, 'error');
-            }
-        }
-
-        function createAnalysisResults(data) {
-            const selectedVariables = ['allout', 'susp', 'test', 'conf', 'maltreat'];
-            
-            // Add status to each row
-            const dataWithStatus = data.map(row => {
-                const totalCases = selectedVariables.reduce((sum, col) => sum + (row[col] || 0), 0);
-                return {
-                    ...row,
-                    status: totalCases > 0 ? 1 : 0
-                };
-            });
-            
-            // Group by ADM1
-            const adm1Groups = {};
-            dataWithStatus.forEach(row => {
-                const adm1 = row.adm1;
-                if (!adm1Groups[adm1]) {
-                    adm1Groups[adm1] = [];
-                }
-                adm1Groups[adm1].push(row);
-            });
-            
-            // Create regional statistics
-            const regionalStats = {};
-            Object.keys(adm1Groups).forEach(adm1 => {
-                const groupData = adm1Groups[adm1];
-                const uniqueHFs = new Set(groupData.map(row => row.hf_uid)).size;
-                const monthsReported = groupData.filter(row => row.status === 1).length;
-                const totalMonths = groupData.length;
-                const totalCases = groupData.reduce((sum, row) => sum + selectedVariables.reduce((colSum, col) => colSum + (row[col] || 0), 0), 0);
-                const reportingRate = totalMonths > 0 ? ((monthsReported / totalMonths) * 100).toFixed(2) : 0;
-                
-                regionalStats[adm1] = {
-                    healthFacilities: uniqueHFs,
-                    monthsReported: monthsReported,
-                    totalMonths: totalMonths,
-                    totalCases: totalCases,
-                    reportingRate: reportingRate
-                };
-            });
-            
-            return {
-                dataWithStatus: dataWithStatus,
-                adm1Groups: adm1Groups,
-                regionalStats: regionalStats
-            };
-        }
-
-        function showResults() {
-            // Generate charts for each region
-            generateRegionalCharts();
-            
-            // Show regional statistics
-            showRegionalStatistics();
-            
-            // Show results section
-            document.getElementById('resultsSection').classList.remove('hidden');
-        }
-
-        function generateRegionalCharts() {
-            const chartsContainer = document.getElementById('chartsContainer');
-            chartsContainer.innerHTML = '';
-            
-            Object.keys(analysisResults.adm1Groups).forEach(adm1 => {
-                const chartContainer = document.createElement('div');
-                chartContainer.className = 'chart-container';
-                
-                const title = document.createElement('div');
-                title.className = 'chart-title';
-                title.textContent = `${adm1} - Reporting Status`;
-                chartContainer.appendChild(title);
-                
-                const canvas = document.createElement('canvas');
-                canvas.className = 'heatmap-canvas';
-                canvas.id = `chart-${adm1}`;
-                chartContainer.appendChild(canvas);
-                
-                chartsContainer.appendChild(chartContainer);
-                
-                // Generate heatmap for this region
-                generateRegionHeatmap(adm1, canvas);
-            });
-        }
-
-        function generateRegionHeatmap(adm1, canvas) {
-            const data = analysisResults.adm1Groups[adm1];
-            
-            // Group by HF and Date
-            const hfData = {};
-            data.forEach(row => {
-                if (!hfData[row.hf_uid]) {
-                    hfData[row.hf_uid] = {};
-                }
-                // Ensure date is in YYYY-MM format
-                let formattedDate = row.Date;
-                if (formattedDate && formattedDate.length > 7) {
-                    formattedDate = formattedDate.substring(0, 7); // Take only YYYY-MM part
-                }
-                hfData[row.hf_uid][formattedDate] = row.status;
-            });
-            
-            const hfIds = Object.keys(hfData);
-            const dates = [...new Set(data.map(row => {
-                let formattedDate = row.Date;
-                if (formattedDate && formattedDate.length > 7) {
-                    formattedDate = formattedDate.substring(0, 7);
-                }
-                return formattedDate;
-            }))].sort();
-            
-            if (hfIds.length === 0 || dates.length === 0) return;
-            
+        function generateDemoHeatmap() {
+            const canvas = document.getElementById('demoCanvas');
             const ctx = canvas.getContext('2d');
             
-            // Set canvas size - increased height significantly
-            canvas.width = Math.max(1200, dates.length * 25 + 300);
-            canvas.height = Math.max(700, hfIds.length * 30 + 250);
+            const { districts, dates, reportingRates } = sampleData;
+            
+            // Canvas dimensions
+            const cellWidth = 60;
+            const cellHeight = 35;
+            const margins = {
+                top: 120,
+                bottom: 100,
+                left: 200,
+                right: 50
+            };
+            
+            const heatmapWidth = cellWidth * dates.length;
+            const heatmapHeight = cellHeight * districts.length;
+            const canvasWidth = heatmapWidth + margins.left + margins.right;
+            const canvasHeight = heatmapHeight + margins.top + margins.bottom;
+            
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            canvas.style.width = canvasWidth + 'px';
+            canvas.style.height = canvasHeight + 'px';
             
             // Clear canvas with white background
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
             
-            // Draw legend (right after title space)
-            const legendY = 50;
-            const legendCenterX = canvas.width / 2;
+            const startX = margins.left;
+            const startY = margins.top;
             
-            ctx.fillStyle = '#333333';
-            ctx.font = 'bold 14px Arial';
+            // Title
+            ctx.fillStyle = '#1e293b';
+            ctx.font = 'bold 24px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Legend:', legendCenterX, legendY);
+            ctx.fillText('Health Facility Reporting Rates by District', canvasWidth / 2, 35);
             
-            // No Report legend item
-            ctx.fillStyle = '#f44336';
-            ctx.fillRect(legendCenterX - 80, legendY + 10, 20, 15);
-            ctx.fillStyle = '#333333';
-            ctx.font = '12px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText('No Report', legendCenterX - 55, legendY + 22);
+            // Subtitle
+            ctx.fillStyle = '#64748b';
+            ctx.font = '16px Arial';
+            ctx.fillText('Sample Region - Monthly Data 2024', canvasWidth / 2, 60);
             
-            // Report legend item
-            ctx.fillStyle = '#4CAF50';
-            ctx.fillRect(legendCenterX + 10, legendY + 10, 20, 15);
-            ctx.fillText('Report', legendCenterX + 35, legendY + 22);
+            // Draw legend
+            drawLegend(ctx, canvasWidth / 2, 85);
             
-            // Calculate dimensions for heatmap
-            const startX = 180;
-            const startY = 120;
-            const cellWidth = Math.max(15, (canvas.width - 280) / dates.length);
-            const cellHeight = Math.max(20, (canvas.height - 220) / hfIds.length);
+            // Y-axis title
+            ctx.save();
+            ctx.translate(30, startY + heatmapHeight / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillStyle = '#374151';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Districts', 0, 0);
+            ctx.restore();
             
-            // Draw heatmap
-            hfIds.forEach((hfId, hfIndex) => {
+            // X-axis title
+            ctx.fillStyle = '#374151';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Reporting Period (Month-Year)', startX + heatmapWidth / 2, canvasHeight - 20);
+            
+            // Draw heatmap cells
+            districts.forEach((district, districtIndex) => {
                 dates.forEach((date, dateIndex) => {
-                    const status = hfData[hfId][date] || 0;
+                    const rate = reportingRates[districtIndex][dateIndex];
                     const cellX = startX + dateIndex * cellWidth;
-                    const cellY = startY + hfIndex * cellHeight;
+                    const cellY = startY + districtIndex * cellHeight;
                     
-                    ctx.fillStyle = status === 1 ? '#4CAF50' : '#f44336';
+                    // Draw cell with color based on rate
+                    ctx.fillStyle = getColorForRate(rate);
                     ctx.fillRect(cellX, cellY, cellWidth - 1, cellHeight - 1);
+                    
+                    // Add border
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(cellX, cellY, cellWidth - 1, cellHeight - 1);
+                    
+                    // Add rate text inside cell
+                    ctx.fillStyle = rate > 50 ? '#ffffff' : '#000000';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${rate}%`, cellX + cellWidth/2, cellY + cellHeight/2 + 4);
                 });
                 
-                // Draw HF label (y-axis label only, no ticks)
-                ctx.fillStyle = '#333333';
-                ctx.font = '12px Arial';
+                // Y-axis labels (Districts)
+                ctx.fillStyle = '#1e293b';
+                ctx.font = 'bold 14px Arial';
                 ctx.textAlign = 'right';
-                ctx.fillText(hfId.substring(0, 15), startX - 10, startY + hfIndex * cellHeight + cellHeight/2 + 4);
+                const label = district.length > 18 ? district.substring(0, 15) + '...' : district;
+                ctx.fillText(label, startX - 10, startY + districtIndex * cellHeight + cellHeight/2 + 5);
             });
             
-            // Draw x-axis date labels for EVERY date in YYYY-MM format
-            ctx.fillStyle = '#333333';
-            ctx.font = '10px Arial';
+            // X-axis labels (Dates)
+            ctx.fillStyle = '#1e293b';
+            ctx.font = 'bold 13px Arial';
             ctx.textAlign = 'center';
             dates.forEach((date, dateIndex) => {
                 ctx.save();
-                ctx.translate(startX + dateIndex * cellWidth + cellWidth/2, startY + hfIds.length * cellHeight + 20);
+                ctx.translate(startX + dateIndex * cellWidth + cellWidth/2, startY + heatmapHeight + 25);
                 ctx.rotate(-Math.PI/4);
                 ctx.fillText(date, 0, 0);
                 ctx.restore();
             });
-        }
-
-        function showRegionalStatistics() {
-            const table = document.getElementById('regionalStatsTable');
-            table.innerHTML = '';
             
-            if (!analysisResults) return;
+            // Add grid lines for better readability
+            ctx.strokeStyle = 'rgba(100, 116, 139, 0.2)';
+            ctx.lineWidth = 0.5;
             
-            // Create header
-            const thead = document.createElement('thead');
-            const headerRow = document.createElement('tr');
-            const headers = ['Region', 'Health Facilities', 'Months Reported', 'Total Months', 'Total Cases', 'Reporting Rate (%)'];
-            
-            headers.forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header;
-                headerRow.appendChild(th);
-            });
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-            
-            // Create body
-            const tbody = document.createElement('tbody');
-            Object.entries(analysisResults.regionalStats).forEach(([region, stats]) => {
-                const tr = document.createElement('tr');
-                
-                const values = [
-                    region,
-                    stats.healthFacilities,
-                    stats.monthsReported,
-                    stats.totalMonths,
-                    stats.totalCases.toLocaleString(),
-                    stats.reportingRate + '%'
-                ];
-                
-                values.forEach(value => {
-                    const td = document.createElement('td');
-                    td.textContent = value;
-                    tr.appendChild(td);
-                });
-                
-                tbody.appendChild(tr);
-            });
-            table.appendChild(tbody);
-        }
-
-        function downloadFullDataset() {
-            if (!analysisResults) {
-                showAlert('No data to download', 'error');
-                return;
+            // Horizontal grid lines
+            for (let i = 0; i <= districts.length; i += 3) {
+                const y = startY + i * cellHeight;
+                ctx.beginPath();
+                ctx.moveTo(startX, y);
+                ctx.lineTo(startX + heatmapWidth, y);
+                ctx.stroke();
             }
             
-            const dataWithStatus = analysisResults.dataWithStatus;
-            const csv = convertToCSV(dataWithStatus);
-            downloadFile(csv, `full_dataset_with_status_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`, 'text/csv');
-            showAlert('Dataset downloaded successfully!', 'success');
-        }
-
-        function downloadAnalysisReport() {
-            if (!analysisResults) {
-                showAlert('No analysis to download', 'error');
-                return;
+            // Vertical grid lines
+            for (let i = 0; i <= dates.length; i += 2) {
+                const x = startX + i * cellWidth;
+                ctx.beginPath();
+                ctx.moveTo(x, startY);
+                ctx.lineTo(x, startY + heatmapHeight);
+                ctx.stroke();
             }
             
-            let report = 'Health Facility Reporting Analysis Report\n';
-            report += '==========================================\n\n';
-            report += `Generated: ${new Date().toISOString()}\n\n`;
+            // Add data summary
+            ctx.fillStyle = '#6b7280';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText(`${districts.length} districts × ${dates.length} months`, canvasWidth - 10, canvasHeight - 10);
+        }
+
+        function drawLegend(ctx, centerX, y) {
+            const legendWidth = 400;
+            const legendHeight = 25;
             
-            report += 'Regional Statistics:\n';
-            report += 'Region,Health Facilities,Months Reported,Total Months,Total Cases,Reporting Rate (%)\n';
+            // Legend title
+            ctx.fillStyle = '#374151';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Reporting Rate (%)', centerX, y - 5);
             
-            Object.entries(analysisResults.regionalStats).forEach(([region, stats]) => {
-                report += `${region},${stats.healthFacilities},${stats.monthsReported},${stats.totalMonths},${stats.totalCases},${stats.reportingRate}\n`;
+            const gradientStartX = centerX - legendWidth/2;
+            const gradientY = y + 5;
+            
+            // Draw gradient bar
+            for (let i = 0; i <= legendWidth; i++) {
+                const ratio = i / legendWidth;
+                const rate = ratio * 100;
+                ctx.fillStyle = getColorForRate(rate);
+                ctx.fillRect(gradientStartX + i, gradientY, 1, legendHeight);
+            }
+            
+            // Legend border
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(gradientStartX, gradientY, legendWidth, legendHeight);
+            
+            // Legend ticks and labels
+            ctx.fillStyle = '#374151';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            
+            const ticks = [0, 25, 50, 75, 100];
+            ticks.forEach(tick => {
+                const x = gradientStartX + (tick / 100) * legendWidth;
+                
+                // Tick mark
+                ctx.strokeStyle = '#374151';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, gradientY + legendHeight);
+                ctx.lineTo(x, gradientY + legendHeight + 8);
+                ctx.stroke();
+                
+                // Tick label
+                ctx.fillText(`${tick}%`, x, gradientY + legendHeight + 22);
             });
-            
-            downloadFile(report, `analysis_report_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`, 'text/plain');
-            showAlert('Analysis report downloaded successfully!', 'success');
         }
 
-        function convertToCSV(data) {
-            if (!data || data.length === 0) return '';
-            
-            const headers = Object.keys(data[0]);
-            const csvContent = [
-                headers.join(','),
-                ...data.map(row => headers.map(header => {
-                    const value = row[header];
-                    return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
-                }).join(','))
-            ].join('\n');
-            
-            return csvContent;
+        function getColorForRate(rate) {
+            // Color scale from red (0%) to yellow (50%) to green (100%)
+            if (rate <= 50) {
+                // Red to yellow
+                const ratio = rate / 50;
+                const r = 255;
+                const g = Math.round(ratio * 255);
+                const b = 0;
+                return `rgb(${r}, ${g}, ${b})`;
+            } else {
+                // Yellow to green
+                const ratio = (rate - 50) / 50;
+                const r = Math.round(255 * (1 - ratio));
+                const g = 255;
+                const b = 0;
+                return `rgb(${r}, ${g}, ${b})`;
+            }
         }
 
-        function downloadFile(content, filename, mimeType) {
-            const blob = new Blob([content], { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
+        // Generate the demo heatmap when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            generateDemoHeatmap();
+        });
     </script>
 </body>
 </html>
