@@ -66,6 +66,27 @@
             margin: 1rem 0;
         }
 
+        .shapefile-section {
+            background: rgba(30, 41, 59, 0.3);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            border: 1px solid rgba(37, 99, 235, 0.1);
+        }
+
+        .shapefile-section h4 {
+            color: #93c5fd;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .shapefile-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
         .file-input-label {
             display: inline-block;
             padding: 15px 30px;
@@ -78,6 +99,8 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(29, 78, 216, 0.4);
             margin: 0.5rem 0.5rem 0.5rem 0;
+            text-align: center;
+            width: 100%;
         }
 
         .file-input-label:hover {
@@ -89,6 +112,25 @@
         .file-input-label input[type="file"] {
             position: absolute;
             left: -9999px;
+        }
+
+        .file-status {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            padding: 0.5rem;
+            border-radius: 5px;
+        }
+
+        .file-status.uploaded {
+            background: rgba(5, 150, 105, 0.2);
+            color: #6ee7b7;
+            border-left: 3px solid #059669;
+        }
+
+        .file-status.missing {
+            background: rgba(220, 38, 38, 0.2);
+            color: #fca5a5;
+            border-left: 3px solid #dc2626;
         }
 
         .controls-section {
@@ -269,6 +311,35 @@
             margin: 1rem 0;
         }
 
+        /* Legend and statistics box styling */
+        .legend, .statistics-box {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 12px;
+            line-height: 18px;
+            color: #333;
+        }
+
+        .legend h4, .statistics-box h4 {
+            margin: 0 0 5px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .legend i {
+            float: left;
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+
+        .statistics-box {
+            font-size: 11px;
+            line-height: 14px;
+            max-width: 200px;
+        }
+
         @media (max-width: 768px) {
             .main-header h1 {
                 font-size: 2rem;
@@ -297,11 +368,42 @@
                     Choose Excel File (Health Facilities)
                     <input type="file" id="excelInput" accept=".xlsx,.xls">
                 </label>
+                <div id="excelStatus" class="file-status missing">No Excel file selected</div>
+            </div>
+
+            <div class="shapefile-section">
+                <h4>Shapefile Components (All three files required)</h4>
+                <div class="shapefile-inputs">
+                    <div>
+                        <label class="file-input-label">
+                            Choose .shp file
+                            <input type="file" id="shpInput" accept=".shp">
+                        </label>
+                        <div id="shpStatus" class="file-status missing">No .shp file selected</div>
+                    </div>
+                    
+                    <div>
+                        <label class="file-input-label">
+                            Choose .shx file
+                            <input type="file" id="shxInput" accept=".shx">
+                        </label>
+                        <div id="shxStatus" class="file-status missing">No .shx file selected</div>
+                    </div>
+                    
+                    <div>
+                        <label class="file-input-label">
+                            Choose .dbf file
+                            <input type="file" id="dbfInput" accept=".dbf">
+                        </label>
+                        <div id="dbfStatus" class="file-status missing">No .dbf file selected</div>
+                    </div>
+                </div>
                 
-                <label class="file-input-label">
-                    Choose Shapefile (.zip)
-                    <input type="file" id="shapefileInput" accept=".zip">
-                </label>
+                <div style="text-align: center; margin-top: 1rem;">
+                    <button class="btn btn-primary" id="processShapefileBtn" onclick="processShapefiles()" disabled>
+                        Process Shapefile Components
+                    </button>
+                </div>
             </div>
             
             <div id="uploadStatus"></div>
@@ -382,6 +484,11 @@
         let facilitiesData = [];
         let boundaryLayer = null;
         let facilitiesLayer = null;
+        let shapefileComponents = {
+            shp: null,
+            shx: null,
+            dbf: null
+        };
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -391,7 +498,9 @@
 
         function setupEventListeners() {
             document.getElementById('excelInput').addEventListener('change', handleExcelUpload);
-            document.getElementById('shapefileInput').addEventListener('change', handleShapefileUpload);
+            document.getElementById('shpInput').addEventListener('change', (e) => handleShapefileComponent(e, 'shp'));
+            document.getElementById('shxInput').addEventListener('change', (e) => handleShapefileComponent(e, 'shx'));
+            document.getElementById('dbfInput').addEventListener('change', (e) => handleShapefileComponent(e, 'dbf'));
             document.getElementById('pointSize').addEventListener('input', updateRangeValue);
             document.getElementById('mapTitle').addEventListener('input', updateMapTitle);
         }
@@ -429,7 +538,16 @@
 
         function handleExcelUpload(event) {
             const file = event.target.files[0];
-            if (!file) return;
+            const statusDiv = document.getElementById('excelStatus');
+            
+            if (!file) {
+                statusDiv.className = 'file-status missing';
+                statusDiv.textContent = 'No Excel file selected';
+                return;
+            }
+
+            statusDiv.className = 'file-status uploaded';
+            statusDiv.textContent = `✓ ${file.name} selected`;
 
             document.getElementById('uploadStatus').innerHTML = '<div class="loading">Processing Excel file...</div>';
 
@@ -444,9 +562,47 @@
                 } catch (error) {
                     showAlert('Error reading Excel file: ' + error.message, 'error');
                     document.getElementById('uploadStatus').innerHTML = '';
+                    statusDiv.className = 'file-status missing';
+                    statusDiv.textContent = 'Error reading file';
                 }
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        function handleShapefileComponent(event, type) {
+            const file = event.target.files[0];
+            const statusDiv = document.getElementById(type + 'Status');
+            
+            if (!file) {
+                statusDiv.className = 'file-status missing';
+                statusDiv.textContent = `No .${type} file selected`;
+                shapefileComponents[type] = null;
+            } else {
+                statusDiv.className = 'file-status uploaded';
+                statusDiv.textContent = `✓ ${file.name} selected`;
+                
+                // Read file as ArrayBuffer and store
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    shapefileComponents[type] = e.target.result;
+                    checkShapefileComplete();
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        function checkShapefileComplete() {
+            const hasAll = shapefileComponents.shp && shapefileComponents.shx && shapefileComponents.dbf;
+            const button = document.getElementById('processShapefileBtn');
+            
+            button.disabled = !hasAll;
+            if (hasAll) {
+                button.textContent = 'Process Shapefile Components (Ready!)';
+                button.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+            } else {
+                button.textContent = 'Process Shapefile Components';
+                button.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)';
+            }
         }
 
         function processHealthFacilities(data) {
@@ -508,20 +664,29 @@
             updateStatsAndMap();
         }
 
-        async function handleShapefileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            if (!file.name.endsWith('.zip')) {
-                showAlert('Please upload a ZIP file containing shapefile components.', 'error');
+        async function processShapefiles() {
+            if (!shapefileComponents.shp || !shapefileComponents.shx || !shapefileComponents.dbf) {
+                showAlert('Please upload all three shapefile components (.shp, .shx, .dbf)', 'error');
                 return;
             }
 
-            document.getElementById('uploadStatus').innerHTML = '<div class="loading">Processing shapefile...</div>';
+            // Check if shp library is loaded
+            if (typeof shp === 'undefined') {
+                showAlert('Shapefile processing library not loaded. Please refresh the page and try again.', 'error');
+                return;
+            }
+
+            document.getElementById('uploadStatus').innerHTML = '<div class="loading">Processing shapefile components...</div>';
 
             try {
-                const arrayBuffer = await file.arrayBuffer();
-                const geojson = await shp(arrayBuffer);
+                // Create a combined buffer object that shp.js can understand
+                const combinedShapefile = {
+                    shp: shapefileComponents.shp,
+                    shx: shapefileComponents.shx,
+                    dbf: shapefileComponents.dbf
+                };
+
+                const geojson = await shp(combinedShapefile);
                 
                 if (geojson && geojson.features) {
                     // Add boundary layer to map
@@ -549,10 +714,11 @@
                     showAlert(`Successfully loaded ${geojson.features.length} boundary features!`, 'success');
                     updateStatsAndMap();
                 } else {
-                    throw new Error('Invalid shapefile format');
+                    throw new Error('Invalid shapefile format or missing components');
                 }
             } catch (error) {
-                showAlert('Error processing shapefile: ' + error.message, 'error');
+                console.error('Shapefile processing error:', error);
+                showAlert('Error processing shapefile: ' + error.message + '. Please ensure all three files (.shp, .shx, .dbf) are from the same shapefile.', 'error');
                 document.getElementById('uploadStatus').innerHTML = '';
             }
         }
@@ -642,6 +808,20 @@
 
         function updateMapStyle() {
             updateMapTitle();
+            
+            // Update boundary layer style if it exists
+            if (boundaryLayer) {
+                const backgroundColor = document.getElementById('backgroundColor').value;
+                boundaryLayer.setStyle({
+                    fillColor: backgroundColor,
+                    fillOpacity: 0.8,
+                    color: '#333333',
+                    weight: 2,
+                    opacity: 1
+                });
+            }
+            
+            // Update facilities layer
             addFacilitiesToMap();
             showAlert('Map style updated!', 'success');
         }
