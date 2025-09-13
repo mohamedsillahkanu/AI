@@ -613,14 +613,38 @@
 
         function formatDate(date) {
             if (date instanceof Date) {
-                return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                const year = date.getFullYear();
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                return `${year}-${month}`;
             }
             
             const str = date.toString();
-            if (str.includes('-') && str.length >= 7) {
-                return str.substring(0, 7);
+            
+            // Handle various date formats
+            if (str.includes('-')) {
+                // Format: YYYY-MM-DD or YYYY-MM
+                const parts = str.split('-');
+                if (parts.length >= 2) {
+                    const year = parts[0];
+                    const month = parts[1].padStart(2, '0');
+                    return `${year}-${month}`;
+                }
+            } else if (str.includes('/')) {
+                // Format: MM/DD/YYYY or MM/YYYY
+                const parts = str.split('/');
+                if (parts.length >= 2) {
+                    const month = parts[0].padStart(2, '0');
+                    const year = parts.length === 3 ? parts[2] : parts[1];
+                    return `${year}-${month}`;
+                }
+            } else if (str.length === 6 && !isNaN(str)) {
+                // Format: YYYYMM
+                const year = str.substring(0, 4);
+                const month = str.substring(4, 6);
+                return `${year}-${month}`;
             }
             
+            // If none of the above formats match, return as is
             return str;
         }
 
@@ -665,6 +689,19 @@
             }
         }
 
+        function sortDatesChronologically(dates) {
+            return dates.sort((a, b) => {
+                // Parse dates in YYYY-MM format
+                const [yearA, monthA] = a.split('-').map(Number);
+                const [yearB, monthB] = b.split('-').map(Number);
+                
+                if (yearA !== yearB) {
+                    return yearA - yearB;
+                }
+                return monthA - monthB;
+            });
+        }
+
         function generateRegionHeatmap(regionName) {
             const canvas = document.getElementById('heatmapCanvas');
             const ctx = canvas.getContext('2d');
@@ -677,7 +714,8 @@
             }
             
             const districts = [...new Set(regionData.map(row => row.adm3))].sort();
-            const dates = [...new Set(regionData.map(row => row.date))].sort();
+            const unsortedDates = [...new Set(regionData.map(row => row.date))];
+            const dates = sortDatesChronologically(unsortedDates);
             
             const districtAvgs = districts.map(district => {
                 const districtData = regionData.filter(row => row.adm3 === district);
@@ -784,15 +822,21 @@
                 ctx.fillText(label, startX - 12, startY + districtIndex * cellHeight + cellHeight/2 + 5);
             });
             
-            // X-axis labels (Dates)
+            // X-axis labels (Dates) - Improved date display logic
             ctx.fillStyle = '#1e293b';
             ctx.font = 'bold 11px Arial';
             ctx.textAlign = 'center';
+            
+            // Calculate how many labels to show based on available space
+            const maxLabels = Math.floor((heatmapWidth) / 80); // Minimum 80px between labels
+            const labelStep = Math.max(1, Math.ceil(dates.length / maxLabels));
+            
             dates.forEach((date, dateIndex) => {
-                if (dateIndex % Math.max(1, Math.floor(dates.length / 12)) === 0 || dates.length <= 12) {
+                if (dateIndex % labelStep === 0 || dateIndex === dates.length - 1) {
                     ctx.save();
                     ctx.translate(startX + dateIndex * cellWidth + cellWidth/2, startY + heatmapHeight + 20);
-                    ctx.rotate(-Math.PI/3);
+                    ctx.rotate(-Math.PI/4);
+                    // Format date for display (e.g., "2015-01" stays as "2015-01")
                     ctx.fillText(date, 0, 0);
                     ctx.restore();
                 }
