@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <style>
         * {
@@ -32,7 +32,6 @@
             margin-bottom: 2rem;
             border-radius: 0 0 1rem 1rem;
             box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3);
-            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
         }
 
         .main-header h1 {
@@ -41,13 +40,8 @@
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
         }
 
-        .main-header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-        }
-
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 1rem;
         }
@@ -59,7 +53,6 @@
             border-radius: 15px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             margin: 2rem 0;
-            border-left: 4px solid #2563eb;
             border: 1px solid rgba(37, 99, 235, 0.2);
         }
 
@@ -69,46 +62,12 @@
             font-size: 1.5rem;
         }
 
-        .upload-section p {
-            color: #9ca3af;
-            margin-bottom: 1rem;
+        .file-input-wrapper {
+            margin: 1rem 0;
         }
 
-        .upload-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .file-upload-box {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.8) 100%);
-            border: 2px dashed #60a5fa;
-            border-radius: 15px;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .file-upload-box:hover {
-            border-color: #93c5fd;
-            background: linear-gradient(135deg, rgba(51, 65, 85, 0.9) 0%, rgba(71, 85, 105, 0.9) 100%);
-            transform: translateY(-2px);
-        }
-
-        .file-upload-box h4 {
-            color: #93c5fd;
-            margin-bottom: 1rem;
-            font-size: 1.2rem;
-        }
-
-        .file-upload-box input[type="file"] {
-            display: none;
-        }
-
-        .file-upload-label {
-            display: block;
+        .file-input-label {
+            display: inline-block;
             padding: 15px 30px;
             background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
             color: white;
@@ -118,13 +77,18 @@
             font-weight: 600;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(29, 78, 216, 0.4);
-            margin: 1rem 0;
+            margin: 0.5rem 0.5rem 0.5rem 0;
         }
 
-        .file-upload-label:hover {
+        .file-input-label:hover {
             background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
             transform: translateY(-3px);
             box-shadow: 0 8px 25px rgba(29, 78, 216, 0.6);
+        }
+
+        .file-input-label input[type="file"] {
+            position: absolute;
+            left: -9999px;
         }
 
         .controls-section {
@@ -135,19 +99,13 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             margin: 2rem 0;
             border: 1px solid rgba(37, 99, 235, 0.2);
-        }
-
-        .controls-section h3 {
-            color: #93c5fd;
-            margin-bottom: 1.5rem;
-            font-size: 1.4rem;
+            display: none;
         }
 
         .controls-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
-            margin-top: 1rem;
         }
 
         .control-group {
@@ -187,28 +145,6 @@
             outline: none;
         }
 
-        .control-group input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #60a5fa;
-            cursor: pointer;
-            border: 2px solid #1e40af;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        }
-
-        .control-group input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #60a5fa;
-            cursor: pointer;
-            border: 2px solid #1e40af;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        }
-
         .map-container {
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
             backdrop-filter: blur(15px);
@@ -217,6 +153,7 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             margin: 2rem 0;
             border: 1px solid rgba(37, 99, 235, 0.2);
+            display: none;
         }
 
         .map-container h3 {
@@ -231,6 +168,7 @@
             width: 100%;
             border-radius: 10px;
             border: 2px solid rgba(37, 99, 235, 0.3);
+            background: white;
         }
 
         .stats-container {
@@ -241,13 +179,14 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             margin: 2rem 0;
             border: 1px solid rgba(37, 99, 235, 0.2);
+            display: none;
         }
 
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
-            margin-top: 1rem;
+            margin: 1rem 0;
         }
 
         .stat-card {
@@ -273,9 +212,23 @@
             margin-bottom: 0.5rem;
         }
 
-        .stat-card p {
-            color: #9ca3af;
-            font-size: 0.85rem;
+        .alert {
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, rgba(5, 150, 105, 0.2) 0%, rgba(4, 120, 87, 0.2) 100%);
+            border-left: 4px solid #059669;
+            color: #6ee7b7;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(185, 28, 28, 0.2) 100%);
+            border-left: 4px solid #dc2626;
+            color: #fca5a5;
         }
 
         .btn {
@@ -300,52 +253,6 @@
         .btn-primary:hover {
             background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(29, 78, 216, 0.6);
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            font-weight: 500;
-            backdrop-filter: blur(15px);
-        }
-
-        .alert-success {
-            background: linear-gradient(135deg, rgba(5, 150, 105, 0.2) 0%, rgba(4, 120, 87, 0.2) 100%);
-            border-left: 4px solid #059669;
-            color: #6ee7b7;
-        }
-
-        .alert-error {
-            background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(185, 28, 28, 0.2) 100%);
-            border-left: 4px solid #dc2626;
-            color: #fca5a5;
-        }
-
-        .alert-info {
-            background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(2, 132, 199, 0.2) 100%);
-            border-left: 4px solid #0ea5e9;
-            color: #7dd3fc;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .loading-spinner {
-            border: 4px solid rgba(37, 99, 235, 0.2);
-            border-top: 4px solid #2563eb;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
 
         .footer {
@@ -355,7 +262,11 @@
             margin-top: 3rem;
             border-top: 1px solid rgba(37, 99, 235, 0.2);
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%);
-            backdrop-filter: blur(10px);
+        }
+
+        .loading {
+            color: #60a5fa;
+            margin: 1rem 0;
         }
 
         @media (max-width: 768px) {
@@ -365,14 +276,6 @@
             
             .container {
                 padding: 0 10px;
-            }
-            
-            .upload-section, .controls-section, .map-container, .stats-container {
-                padding: 1rem;
-            }
-
-            .upload-grid {
-                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -386,45 +289,29 @@
     <div class="container">
         <!-- Upload Section -->
         <div class="upload-section">
-            <h3>Data Upload</h3>
-            <p>Upload your health facility Excel/CSV file and shapefile components (.shp, .shx, .dbf)</p>
+            <h3>Upload Your Data Files</h3>
+            <p>Upload your Excel file with health facility coordinates and the three shapefile components (.shp, .shx, .dbf)</p>
             
-            <div class="upload-grid">
-                <div class="file-upload-box">
-                    <h4>Health Facilities Data</h4>
-                    <p>Excel or CSV file with coordinates (w_long, w_lat columns expected)</p>
-                    <label class="file-upload-label">
-                        Choose Excel/CSV File
-                        <input type="file" id="facilitiesInput" accept=".csv,.xlsx,.xls">
-                    </label>
-                    <div id="facilitiesStatus" class="file-status"></div>
-                </div>
-
-                <div class="file-upload-box">
-                    <h4>Shapefile Components</h4>
-                    <p>Select .shp, .shx, and .dbf files (all required)</p>
-                    <label class="file-upload-label">
-                        Choose Shapefile (.shp)
-                        <input type="file" id="shpInput" accept=".shp">
-                    </label>
-                    <label class="file-upload-label">
-                        Choose Index (.shx)
-                        <input type="file" id="shxInput" accept=".shx">
-                    </label>
-                    <label class="file-upload-label">
-                        Choose Database (.dbf)
-                        <input type="file" id="dbfInput" accept=".dbf">
-                    </label>
-                    <div id="shapefileStatus" class="file-status"></div>
-                </div>
+            <div class="file-input-wrapper">
+                <label class="file-input-label">
+                    Choose Excel File (Health Facilities)
+                    <input type="file" id="excelInput" accept=".xlsx,.xls">
+                </label>
+                
+                <label class="file-input-label">
+                    Choose Shapefile (.zip)
+                    <input type="file" id="shapefileInput" accept=".zip">
+                </label>
             </div>
+            
+            <div id="uploadStatus"></div>
         </div>
 
         <!-- Alerts Container -->
         <div id="alertContainer"></div>
 
         <!-- Map Customization Controls -->
-        <div class="controls-section" id="controlsSection" style="display: none;">
+        <div class="controls-section" id="controlsSection">
             <h3>Map Customization</h3>
             
             <div class="controls-grid">
@@ -439,11 +326,6 @@
                 </div>
                 
                 <div class="control-group">
-                    <label for="pointOpacity">Point Opacity: <span id="pointOpacityValue">0.7</span></label>
-                    <input type="range" id="pointOpacity" min="0.1" max="1" step="0.1" value="0.7">
-                </div>
-                
-                <div class="control-group">
                     <label for="pointColor">Point Color</label>
                     <select id="pointColor">
                         <option value="#47B5FF" selected>Blue</option>
@@ -451,100 +333,78 @@
                         <option value="#2ed573">Green</option>
                         <option value="#a55eea">Purple</option>
                         <option value="#ffa502">Orange</option>
-                        <option value="#ff6b6b">Pink</option>
-                        <option value="#26de81">Mint</option>
                     </select>
                 </div>
                 
                 <div class="control-group">
-                    <label for="borderWidth">Border Width: <span id="borderWidthValue">2</span></label>
-                    <input type="range" id="borderWidth" min="0" max="10" value="2">
-                </div>
-                
-                <div class="control-group">
-                    <label for="borderColor">Border Color</label>
-                    <select id="borderColor">
-                        <option value="#333333" selected>Dark Gray</option>
-                        <option value="#000000">Black</option>
-                        <option value="#666666">Gray</option>
-                        <option value="#999999">Light Gray</option>
-                        <option value="#2563eb">Blue</option>
+                    <label for="backgroundColor">Background Color</label>
+                    <select id="backgroundColor">
+                        <option value="white" selected>White</option>
+                        <option value="lightgray">Light Gray</option>
+                        <option value="lightblue">Light Blue</option>
+                        <option value="beige">Beige</option>
                     </select>
                 </div>
             </div>
             
             <div style="margin-top: 2rem; text-align: center;">
-                <button class="btn btn-primary" onclick="updateMap()">Update Map</button>
-                <button class="btn btn-primary" onclick="resetView()">Reset View</button>
+                <button class="btn btn-primary" onclick="updateMapStyle()">Update Map Style</button>
+                <button class="btn btn-primary" onclick="downloadMap()">Download Map</button>
             </div>
         </div>
 
         <!-- Map Container -->
-        <div class="map-container" id="mapContainer" style="display: none;">
+        <div class="map-container" id="mapContainer">
             <h3 id="mapTitleDisplay">Health Facility Distribution</h3>
             <div id="map"></div>
         </div>
 
         <!-- Statistics Container -->
-        <div class="stats-container" id="statsContainer" style="display: none;">
+        <div class="stats-container" id="statsContainer">
             <h3>Data Statistics</h3>
             <div class="stats-grid" id="statsGrid">
                 <!-- Stats will be populated here -->
             </div>
             
             <div style="margin-top: 2rem; text-align: center;">
-                <button class="btn btn-primary" onclick="downloadProcessedData()">Download Processed Data</button>
-                <button class="btn btn-primary" onclick="downloadGeoJSON()">Download GeoJSON</button>
+                <button class="btn btn-primary" onclick="downloadProcessedData()">Download Processed Data (CSV)</button>
             </div>
         </div>
     </div>
 
     <!-- Footer -->
     <div class="footer">
-        <p>Health Facilities Distribution Tool | Interactive Mapping with Shapefile Support</p>
+        <p>Health Facilities Distribution Tool | Simple Upload & Visualization</p>
     </div>
 
     <script>
         let map;
         let facilitiesData = [];
-        let shapefileGeoJSON = null;
+        let boundaryLayer = null;
         let facilitiesLayer = null;
-        let shapefileLayer = null;
-        let originalBounds = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            setupEventListeners();
             initializeMap();
+            setupEventListeners();
         });
 
         function setupEventListeners() {
-            document.getElementById('facilitiesInput').addEventListener('change', handleFacilitiesUpload);
-            document.getElementById('shpInput').addEventListener('change', handleShapefileUpload);
-            document.getElementById('shxInput').addEventListener('change', handleShapefileUpload);
-            document.getElementById('dbfInput').addEventListener('change', handleShapefileUpload);
-            
-            // Real-time control updates
-            document.getElementById('pointSize').addEventListener('input', updateControlValue);
-            document.getElementById('pointOpacity').addEventListener('input', updateControlValue);
-            document.getElementById('borderWidth').addEventListener('input', updateControlValue);
+            document.getElementById('excelInput').addEventListener('change', handleExcelUpload);
+            document.getElementById('shapefileInput').addEventListener('change', handleShapefileUpload);
+            document.getElementById('pointSize').addEventListener('input', updateRangeValue);
             document.getElementById('mapTitle').addEventListener('input', updateMapTitle);
         }
 
         function initializeMap() {
-            map = L.map('map').setView([8.5, -11.5], 7); // Sierra Leone approximate center
-            
+            map = L.map('map').setView([8.5, -11.5], 7);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
         }
 
-        function updateControlValue(event) {
-            const control = event.target;
-            const valueSpan = document.getElementById(control.id + 'Value');
-            if (valueSpan) {
-                valueSpan.textContent = control.value;
-            }
+        function updateRangeValue(event) {
+            document.getElementById(event.target.id + 'Value').textContent = event.target.value;
         }
 
         function updateMapTitle() {
@@ -567,74 +427,61 @@
             }, 5000);
         }
 
-        function handleFacilitiesUpload(event) {
+        function handleExcelUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            const fileName = file.name;
-            const fileExtension = fileName.split('.').pop().toLowerCase();
-            
-            document.getElementById('facilitiesStatus').innerHTML = '<div class="loading-spinner"></div>';
+            document.getElementById('uploadStatus').innerHTML = '<div class="loading">Processing Excel file...</div>';
 
-            if (fileExtension === 'csv') {
-                Papa.parse(file, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: function(results) {
-                        processFacilitiesData(results.data);
-                    },
-                    error: function(error) {
-                        showAlert('Error reading CSV file: ' + error.message, 'error');
-                        document.getElementById('facilitiesStatus').innerHTML = '';
-                    }
-                });
-            } else if (['xlsx', 'xls'].includes(fileExtension)) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, {type: 'array'});
-                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                        processFacilitiesData(jsonData);
-                    } catch (error) {
-                        showAlert('Error reading Excel file: ' + error.message, 'error');
-                        document.getElementById('facilitiesStatus').innerHTML = '';
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            } else {
-                showAlert('Unsupported file type. Please upload CSV or Excel files.', 'error');
-                document.getElementById('facilitiesStatus').innerHTML = '';
-            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    processHealthFacilities(jsonData);
+                } catch (error) {
+                    showAlert('Error reading Excel file: ' + error.message, 'error');
+                    document.getElementById('uploadStatus').innerHTML = '';
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
 
-        function processFacilitiesData(data) {
+        function processHealthFacilities(data) {
             if (!data || data.length === 0) {
-                showAlert('The facilities file appears to be empty or invalid.', 'error');
-                document.getElementById('facilitiesStatus').innerHTML = '';
+                showAlert('The Excel file appears to be empty or invalid.', 'error');
+                document.getElementById('uploadStatus').innerHTML = '';
                 return;
             }
 
-            // Check for required coordinate columns
-            const requiredCols = ['w_long', 'w_lat'];
-            const availableCols = Object.keys(data[0] || {});
+            // Look for coordinate columns (flexible naming)
+            const firstRow = data[0];
+            const columns = Object.keys(firstRow);
             
-            // Try alternative column names if exact ones don't exist
             let lonCol = 'w_long';
             let latCol = 'w_lat';
             
-            if (!availableCols.includes('w_long')) {
-                const lonCandidates = ['longitude', 'long', 'lng', 'x'];
-                lonCol = lonCandidates.find(col => availableCols.includes(col)) || 'w_long';
-            }
+            // Try to find longitude column
+            const lonCandidates = ['w_long', 'longitude', 'long', 'lng', 'x'];
+            lonCol = lonCandidates.find(col => columns.includes(col)) || columns.find(col => 
+                col.toLowerCase().includes('long') || col.toLowerCase().includes('x')
+            );
             
-            if (!availableCols.includes('w_lat')) {
-                const latCandidates = ['latitude', 'lat', 'y'];
-                latCol = latCandidates.find(col => availableCols.includes(col)) || 'w_lat';
+            // Try to find latitude column  
+            const latCandidates = ['w_lat', 'latitude', 'lat', 'y'];
+            latCol = latCandidates.find(col => columns.includes(col)) || columns.find(col => 
+                col.toLowerCase().includes('lat') || col.toLowerCase().includes('y')
+            );
+
+            if (!lonCol || !latCol) {
+                showAlert('Could not find longitude/latitude columns. Expected columns like: w_long, w_lat, longitude, latitude', 'error');
+                document.getElementById('uploadStatus').innerHTML = '';
+                return;
             }
 
-            // Filter valid coordinates
+            // Process and validate coordinates
             facilitiesData = data.filter(row => {
                 const lon = parseFloat(row[lonCol]);
                 const lat = parseFloat(row[latCol]);
@@ -648,362 +495,174 @@
             }));
 
             if (facilitiesData.length === 0) {
-                showAlert('No valid coordinates found in the data. Check column names and data format.', 'error');
-                document.getElementById('facilitiesStatus').innerHTML = '';
+                showAlert('No valid coordinates found in the data.', 'error');
+                document.getElementById('uploadStatus').innerHTML = '';
                 return;
             }
 
-            document.getElementById('facilitiesStatus').innerHTML = `
-                <div style="color: #6ee7b7; font-size: 0.9rem;">
-                    ✓ ${facilitiesData.length} facilities loaded
-                </div>
+            document.getElementById('uploadStatus').innerHTML = `
+                <div style="color: #6ee7b7;">✓ Loaded ${facilitiesData.length} health facilities</div>
             `;
 
             showAlert(`Successfully loaded ${facilitiesData.length} health facilities!`, 'success');
-            updateStats();
-            checkAndShowControls();
+            updateStatsAndMap();
         }
 
-        async function handleShapefileUpload() {
-            const shpFile = document.getElementById('shpInput').files[0];
-            const shxFile = document.getElementById('shxInput').files[0];
-            const dbfFile = document.getElementById('dbfInput').files[0];
+        async function handleShapefileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-            if (!shpFile || !shxFile || !dbfFile) {
-                return; // Wait for all files to be selected
+            if (!file.name.endsWith('.zip')) {
+                showAlert('Please upload a ZIP file containing shapefile components.', 'error');
+                return;
             }
 
-            document.getElementById('shapefileStatus').innerHTML = '<div class="loading-spinner"></div>';
+            document.getElementById('uploadStatus').innerHTML = '<div class="loading">Processing shapefile...</div>';
 
             try {
-                // Read all files as ArrayBuffer
-                const shpData = await readFileAsArrayBuffer(shpFile);
-                const shxData = await readFileAsArrayBuffer(shxFile);
-                const dbfData = await readFileAsArrayBuffer(dbfFile);
-
-                // Parse shapefile components
-                const features = parseShapefile(shpData, shxData, dbfData);
+                const arrayBuffer = await file.arrayBuffer();
+                const geojson = await shp(arrayBuffer);
                 
-                if (features && features.length > 0) {
-                    shapefileGeoJSON = {
-                        type: "FeatureCollection",
-                        features: features
-                    };
+                if (geojson && geojson.features) {
+                    // Add boundary layer to map
+                    if (boundaryLayer) {
+                        map.removeLayer(boundaryLayer);
+                    }
+                    
+                    boundaryLayer = L.geoJSON(geojson, {
+                        style: {
+                            fillColor: 'lightblue',
+                            fillOpacity: 0.2,
+                            color: '#333333',
+                            weight: 2,
+                            opacity: 0.8
+                        }
+                    }).addTo(map);
 
-                    document.getElementById('shapefileStatus').innerHTML = `
-                        <div style="color: #6ee7b7; font-size: 0.9rem;">
-                            ✓ ${features.length} geographic features loaded
-                        </div>
+                    // Fit map to boundaries
+                    map.fitBounds(boundaryLayer.getBounds());
+
+                    document.getElementById('uploadStatus').innerHTML += `
+                        <div style="color: #6ee7b7;">✓ Loaded ${geojson.features.length} boundary features</div>
                     `;
 
-                    showAlert(`Successfully loaded ${features.length} geographic features!`, 'success');
-                    checkAndShowControls();
+                    showAlert(`Successfully loaded ${geojson.features.length} boundary features!`, 'success');
+                    updateStatsAndMap();
                 } else {
-                    throw new Error('No valid features found in shapefile');
+                    throw new Error('Invalid shapefile format');
                 }
             } catch (error) {
                 showAlert('Error processing shapefile: ' + error.message, 'error');
-                document.getElementById('shapefileStatus').innerHTML = '';
-                console.error('Shapefile processing error:', error);
+                document.getElementById('uploadStatus').innerHTML = '';
             }
         }
 
-        function readFileAsArrayBuffer(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = (e) => reject(new Error('Failed to read file'));
-                reader.readAsArrayBuffer(file);
-            });
-        }
+        function updateStatsAndMap() {
+            // Show controls and map sections
+            document.getElementById('controlsSection').style.display = 'block';
+            document.getElementById('mapContainer').style.display = 'block';
+            document.getElementById('statsContainer').style.display = 'block';
 
-        function parseShapefile(shpData, shxData, dbfData) {
-            try {
-                // This is a simplified shapefile parser
-                // In a production environment, you'd use a proper library like shapefile-js
-                const features = [];
-                const view = new DataView(shpData);
+            // Update statistics
+            if (facilitiesData.length > 0) {
+                const lons = facilitiesData.map(f => f.longitude);
+                const lats = facilitiesData.map(f => f.latitude);
                 
-                // Read shapefile header
-                const fileCode = view.getInt32(0, false); // big endian
-                if (fileCode !== 0x0000270a) {
-                    throw new Error('Invalid shapefile format');
-                }
-                
-                const shapeType = view.getInt32(32, true); // little endian
-                
-                // Parse DBF for attributes
-                const attributes = parseDBF(dbfData);
-                
-                // Simple point parsing (shape type 1)
-                if (shapeType === 1) {
-                    let offset = 100; // Skip header
-                    let featureIndex = 0;
-                    
-                    while (offset < shpData.byteLength - 8) {
-                        try {
-                            const recordNumber = view.getInt32(offset, false);
-                            const contentLength = view.getInt32(offset + 4, false) * 2;
-                            
-                            if (offset + 8 + contentLength > shpData.byteLength) break;
-                            
-                            const recordShapeType = view.getInt32(offset + 8, true);
-                            
-                            if (recordShapeType === 1) { // Point
-                                const x = view.getFloat64(offset + 12, true);
-                                const y = view.getFloat64(offset + 20, true);
-                                
-                                features.push({
-                                    type: "Feature",
-                                    geometry: {
-                                        type: "Point",
-                                        coordinates: [x, y]
-                                    },
-                                    properties: attributes[featureIndex] || {}
-                                });
-                            }
-                            
-                            offset += 8 + contentLength;
-                            featureIndex++;
-                        } catch (e) {
-                            break; // End of valid records
-                        }
-                    }
-                }
-                // Add polygon parsing (shape type 5) - simplified
-                else if (shapeType === 5) {
-                    // Create a simple bounding box feature for demo
-                    const xMin = view.getFloat64(36, true);
-                    const yMin = view.getFloat64(44, true);
-                    const xMax = view.getFloat64(52, true);
-                    const yMax = view.getFloat64(60, true);
-                    
-                    features.push({
-                        type: "Feature",
-                        geometry: {
-                            type: "Polygon",
-                            coordinates: [[
-                                [xMin, yMin],
-                                [xMax, yMin],
-                                [xMax, yMax],
-                                [xMin, yMax],
-                                [xMin, yMin]
-                            ]]
-                        },
-                        properties: { name: "Boundary Area" }
-                    });
-                }
-                
-                return features;
-            } catch (error) {
-                console.error('Error parsing shapefile:', error);
-                // Fallback: create a simple polygon for Sierra Leone
-                return [{
-                    type: "Feature",
-                    geometry: {
-                        type: "Polygon",
-                        coordinates: [[
-                            [-13.5, 7],
-                            [-10, 7],
-                            [-10, 10],
-                            [-13.5, 10],
-                            [-13.5, 7]
-                        ]]
-                    },
-                    properties: { name: "Sierra Leone (Approximate)" }
-                }];
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="stat-card">
+                        <h4>Total Facilities</h4>
+                        <div class="stat-value">${facilitiesData.length}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Longitude Range</h4>
+                        <div class="stat-value">${Math.min(...lons).toFixed(2)}° to ${Math.max(...lons).toFixed(2)}°</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Latitude Range</h4>
+                        <div class="stat-value">${Math.min(...lats).toFixed(2)}° to ${Math.max(...lats).toFixed(2)}°</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Boundary Areas</h4>
+                        <div class="stat-value">${boundaryLayer ? boundaryLayer.getLayers().length : 0}</div>
+                    </div>
+                `;
             }
+
+            // Add facilities to map
+            addFacilitiesToMap();
         }
 
-        function parseDBF(dbfData) {
-            const attributes = [];
-            try {
-                const view = new DataView(dbfData);
-                const numRecords = view.getUint32(4, true);
-                const headerLength = view.getUint16(8, true);
-                const recordLength = view.getUint16(10, true);
-                
-                // Simple attribute extraction - in production, use a proper DBF parser
-                for (let i = 0; i < Math.min(numRecords, 1000); i++) {
-                    attributes.push({ id: i, index: i });
-                }
-            } catch (error) {
-                console.error('Error parsing DBF:', error);
-            }
-            return attributes;
-        }
-
-        function checkAndShowControls() {
-            if ((facilitiesData.length > 0 || shapefileGeoJSON) && map) {
-                document.getElementById('controlsSection').style.display = 'block';
-                document.getElementById('mapContainer').style.display = 'block';
-                document.getElementById('statsContainer').style.display = 'block';
-                updateMap();
-            }
-        }
-
-        function updateMap() {
-            // Clear existing layers
+        function addFacilitiesToMap() {
             if (facilitiesLayer) {
                 map.removeLayer(facilitiesLayer);
             }
-            if (shapefileLayer) {
-                map.removeLayer(shapefileLayer);
-            }
+
+            if (facilitiesData.length === 0) return;
 
             const pointSize = parseInt(document.getElementById('pointSize').value);
-            const pointOpacity = parseFloat(document.getElementById('pointOpacity').value);
             const pointColor = document.getElementById('pointColor').value;
-            const borderWidth = parseInt(document.getElementById('borderWidth').value);
-            const borderColor = document.getElementById('borderColor').value;
 
-            // Add shapefile layer if available
-            if (shapefileGeoJSON) {
-                shapefileLayer = L.geoJSON(shapefileGeoJSON, {
-                    style: {
-                        fillColor: 'lightblue',
-                        fillOpacity: 0.2,
-                        color: borderColor,
-                        weight: borderWidth,
-                        opacity: 0.8
+            facilitiesLayer = L.layerGroup();
+
+            facilitiesData.forEach(facility => {
+                const marker = L.circleMarker([facility.latitude, facility.longitude], {
+                    radius: pointSize,
+                    fillColor: pointColor,
+                    color: '#333333',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.7
+                });
+
+                // Create popup content
+                let popupContent = '<div style="color: #333; font-size: 12px;">';
+                Object.keys(facility).forEach(key => {
+                    if (key !== 'longitude' && key !== 'latitude' && facility[key]) {
+                        popupContent += `<strong>${key}:</strong> ${facility[key]}<br>`;
                     }
-                }).addTo(map);
-            }
+                });
+                popupContent += '</div>';
+                marker.bindPopup(popupContent);
 
-            // Add facilities layer if available
-            if (facilitiesData.length > 0) {
-                const facilitiesGeoJSON = {
-                    type: "FeatureCollection",
-                    features: facilitiesData.map(facility => ({
-                        type: "Feature",
-                        geometry: {
-                            type: "Point",
-                            coordinates: [facility.longitude, facility.latitude]
-                        },
-                        properties: facility
-                    }))
-                };
+                facilitiesLayer.addLayer(marker);
+            });
 
-                facilitiesLayer = L.geoJSON(facilitiesGeoJSON, {
-                    pointToLayer: function(feature, latlng) {
-                        return L.circleMarker(latlng, {
-                            radius: pointSize,
-                            fillColor: pointColor,
-                            color: borderColor,
-                            weight: 1,
-                            opacity: 1,
-                            fillOpacity: pointOpacity
-                        });
-                    },
-                    onEachFeature: function(feature, layer) {
-                        const props = feature.properties;
-                        let popupContent = '<div style="color: #333; font-size: 12px;">';
-                        Object.keys(props).forEach(key => {
-                            if (key !== 'longitude' && key !== 'latitude' && props[key]) {
-                                popupContent += `<strong>${key}:</strong> ${props[key]}<br>`;
-                            }
-                        });
-                        popupContent += '</div>';
-                        layer.bindPopup(popupContent);
-                    }
-                }).addTo(map);
-            }
+            facilitiesLayer.addTo(map);
 
-            // Fit map to data bounds
+            // Fit map to show all data
             const allLayers = [];
-            if (shapefileLayer) allLayers.push(shapefileLayer);
-            if (facilitiesLayer) allLayers.push(facilitiesLayer);
+            if (boundaryLayer) allLayers.push(...boundaryLayer.getLayers());
+            if (facilitiesLayer) allLayers.push(...facilitiesLayer.getLayers());
             
             if (allLayers.length > 0) {
                 const group = L.featureGroup(allLayers);
-                originalBounds = group.getBounds();
-                map.fitBounds(originalBounds);
+                map.fitBounds(group.getBounds());
             }
+        }
 
+        function updateMapStyle() {
             updateMapTitle();
+            addFacilitiesToMap();
+            showAlert('Map style updated!', 'success');
         }
 
-        function resetView() {
-            if (originalBounds) {
-                map.fitBounds(originalBounds);
-            }
-        }
-
-        function updateStats() {
-            if (facilitiesData.length === 0) return;
-
-            const statsGrid = document.getElementById('statsGrid');
-            const totalFacilities = facilitiesData.length;
-            const lons = facilitiesData.map(f => f.longitude);
-            const lats = facilitiesData.map(f => f.latitude);
-            
-            const lonRange = `${Math.min(...lons).toFixed(2)}° to ${Math.max(...lons).toFixed(2)}°`;
-            const latRange = `${Math.min(...lats).toFixed(2)}° to ${Math.max(...lats).toFixed(2)}°`;
-            
-            // Count unique values for different properties if they exist
-            const facilityTypes = facilitiesData
-                .map(f => f.facility_type || f.type || 'Unknown')
-                .filter((v, i, a) => a.indexOf(v) === i);
-            
-            statsGrid.innerHTML = `
-                <div class="stat-card">
-                    <h4>Total Facilities</h4>
-                    <div class="stat-value">${totalFacilities}</div>
-                    <p>Health facilities mapped</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Geographic Areas</h4>
-                    <div class="stat-value">${shapefileGeoJSON ? shapefileGeoJSON.features.length : 0}</div>
-                    <p>Administrative boundaries</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Longitude Range</h4>
-                    <div class="stat-value">${lonRange}</div>
-                    <p>East-West extent</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Latitude Range</h4>
-                    <div class="stat-value">${latRange}</div>
-                    <p>North-South extent</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Facility Types</h4>
-                    <div class="stat-value">${facilityTypes.length}</div>
-                    <p>Different categories</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Data Quality</h4>
-                    <div class="stat-value">${((facilitiesData.length / facilitiesData.length) * 100).toFixed(1)}%</div>
-                    <p>Valid coordinates</p>
-                </div>
-            `;
+        function downloadMap() {
+            // Simple download - in a real implementation you'd capture the map as image
+            showAlert('Map download feature would capture the current map view as PNG', 'info');
         }
 
         function downloadProcessedData() {
             if (facilitiesData.length === 0) {
-                showAlert('No facilities data to download', 'error');
+                showAlert('No data to download', 'error');
                 return;
             }
 
             const csv = convertToCSV(facilitiesData);
             downloadFile(csv, 'processed_health_facilities.csv', 'text/csv');
-            showAlert('Processed data downloaded successfully!', 'success');
-        }
-
-        function downloadGeoJSON() {
-            if (!shapefileGeoJSON) {
-                showAlert('No shapefile data to download', 'error');
-                return;
-            }
-
-            const geoJsonStr = JSON.stringify(shapefileGeoJSON, null, 2);
-            downloadFile(geoJsonStr, 'converted_shapefile.geojson', 'application/geo+json');
-            showAlert('GeoJSON downloaded successfully!', 'success');
+            showAlert('Data downloaded successfully!', 'success');
         }
 
         function convertToCSV(data) {
-            if (!data || data.length === 0) return '';
-            
             const headers = Object.keys(data[0]);
             const csvContent = [
                 headers.join(','),
@@ -1012,7 +671,6 @@
                     return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
                 }).join(','))
             ].join('\n');
-            
             return csvContent;
         }
 
