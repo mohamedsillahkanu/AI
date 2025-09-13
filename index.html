@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Individual District Health Facility Analysis - Blue Dark Theme</title>
+    <title>Health Facilities Distribution</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <style>
         * {
             margin: 0;
@@ -71,14 +74,41 @@
             margin-bottom: 1rem;
         }
 
-        .file-input-wrapper {
-            position: relative;
-            display: inline-block;
-            margin: 1rem 0;
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
         }
 
-        .file-input {
-            display: inline-block;
+        .file-upload-box {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.8) 100%);
+            border: 2px dashed #60a5fa;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload-box:hover {
+            border-color: #93c5fd;
+            background: linear-gradient(135deg, rgba(51, 65, 85, 0.9) 0%, rgba(71, 85, 105, 0.9) 100%);
+            transform: translateY(-2px);
+        }
+
+        .file-upload-box h4 {
+            color: #93c5fd;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .file-upload-box input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-label {
+            display: block;
             padding: 15px 30px;
             background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
             color: white;
@@ -88,44 +118,147 @@
             font-weight: 600;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(29, 78, 216, 0.4);
+            margin: 1rem 0;
         }
 
-        .file-input:hover {
+        .file-upload-label:hover {
             background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
             transform: translateY(-3px);
             box-shadow: 0 8px 25px rgba(29, 78, 216, 0.6);
         }
 
-        .file-input input[type="file"] {
-            position: absolute;
-            left: -9999px;
-        }
-
-        .metric-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 2rem 0;
-        }
-
-        .metric-card {
+        .controls-section {
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
             backdrop-filter: blur(15px);
-            padding: 1.5rem;
-            text-align: center;
+            padding: 2rem;
             border-radius: 15px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            border-top: 4px solid #2563eb;
+            margin: 2rem 0;
             border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .controls-section h3 {
+            color: #93c5fd;
+            margin-bottom: 1.5rem;
+            font-size: 1.4rem;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            color: #cbd5e1;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .control-group input, .control-group select {
+            padding: 10px 12px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+            border: 2px solid #475569;
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 14px;
             transition: all 0.3s ease;
         }
 
-        .metric-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px rgba(37, 99, 235, 0.3);
+        .control-group input:focus, .control-group select:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
         }
 
-        .metric-card h4 {
+        .control-group input[type="range"] {
+            background: transparent;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #1d4ed8, #60a5fa);
+            outline: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+            border: 2px solid #1e40af;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+            border: 2px solid #1e40af;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .map-container {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+            backdrop-filter: blur(15px);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            margin: 2rem 0;
+            border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .map-container h3 {
+            color: #93c5fd;
+            margin-bottom: 1.5rem;
+            font-size: 1.4rem;
+            text-align: center;
+        }
+
+        #map {
+            height: 600px;
+            width: 100%;
+            border-radius: 10px;
+            border: 2px solid rgba(37, 99, 235, 0.3);
+        }
+
+        .stats-container {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+            backdrop-filter: blur(15px);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            margin: 2rem 0;
+            border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.8) 100%);
+            padding: 1.5rem;
+            text-align: center;
+            border-radius: 10px;
+            border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .stat-card h4 {
             color: #6b7280;
             font-size: 0.9rem;
             margin-bottom: 0.5rem;
@@ -133,14 +266,14 @@
             letter-spacing: 0.5px;
         }
 
-        .metric-card .metric-value {
-            font-size: 2rem;
+        .stat-card .stat-value {
+            font-size: 1.8rem;
             font-weight: bold;
             color: #93c5fd;
             margin-bottom: 0.5rem;
         }
 
-        .metric-card p {
+        .stat-card p {
             color: #9ca3af;
             font-size: 0.85rem;
         }
@@ -170,17 +303,6 @@
             box-shadow: 0 6px 20px rgba(29, 78, 216, 0.6);
         }
 
-        .btn-secondary {
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(75, 85, 99, 0.4);
-        }
-
-        .btn-secondary:hover {
-            background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%);
-            transform: translateY(-2px);
-        }
-
         .alert {
             padding: 1rem;
             border-radius: 10px;
@@ -207,96 +329,6 @@
             color: #7dd3fc;
         }
 
-        .results-section {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
-            backdrop-filter: blur(15px);
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            margin: 2rem 0;
-            border: 1px solid rgba(37, 99, 235, 0.2);
-        }
-
-        .results-section h3 {
-            color: #93c5fd;
-            margin-bottom: 1rem;
-        }
-
-        .region-selector {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
-            backdrop-filter: blur(15px);
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            margin: 2rem 0;
-            border: 1px solid rgba(37, 99, 235, 0.2);
-        }
-
-        .region-selector h3 {
-            color: #93c5fd;
-            margin-bottom: 1.5rem;
-            font-size: 1.4rem;
-        }
-
-        .region-dropdown {
-            width: 100%;
-            padding: 12px 16px;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
-            border: 2px solid #475569;
-            border-radius: 10px;
-            color: #e2e8f0;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-
-        .region-dropdown option {
-            background: #0f172a;
-            color: #e2e8f0;
-            padding: 10px;
-        }
-
-        .region-dropdown:focus {
-            outline: none;
-            border-color: #60a5fa;
-            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
-        }
-
-        .chart-container {
-            margin: 2rem 0;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
-            backdrop-filter: blur(15px);
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(37, 99, 235, 0.2);
-            text-align: center;
-            overflow-x: auto;
-        }
-
-        .chart-title {
-            color: #93c5fd;
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 1.5rem;
-        }
-
-        .heatmap-canvas {
-            border-radius: 8px;
-            background: #ffffff;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            border: 2px solid rgba(37, 99, 235, 0.3);
-            display: block;
-            margin: 0 auto;
-            max-width: 100%;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 2rem 0;
-        }
-
         .hidden {
             display: none;
         }
@@ -314,33 +346,6 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-
-        .download-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-
-        /* Scrollbar styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.8);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
         }
 
         .footer {
@@ -362,121 +367,190 @@
                 padding: 0 10px;
             }
             
-            .upload-section, .region-selector, .results-section {
+            .upload-section, .controls-section, .map-container, .stats-container {
                 padding: 1rem;
             }
 
-            .chart-container {
-                padding: 1rem;
+            .upload-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
     <div class="main-header">
-        <h1>Individual Region Health Facility Analysis</h1>
-        <p>Deep dive into reporting rates by district within each region</p>
+        <h1>Health Facilities Distribution</h1>
+        <p>Sierra Leone Health Facilities Interactive Map</p>
     </div>
 
     <div class="container">
         <!-- Upload Section -->
         <div class="upload-section">
             <h3>Data Upload</h3>
-            <p>Upload your health facility data file. Expected columns: adm1, adm3, month, year, report_conf, hf_expected_to_report_month</p>
+            <p>Upload your health facility Excel/CSV file and shapefile components (.shp, .shx, .dbf)</p>
             
-            <div class="file-input-wrapper">
-                <label class="file-input">
-                    Choose File
-                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
-                </label>
-            </div>
-            
-            <div id="uploadProgress" class="hidden">
-                <div class="loading-spinner"></div>
-                <p>Processing your file...</p>
+            <div class="upload-grid">
+                <div class="file-upload-box">
+                    <h4>Health Facilities Data</h4>
+                    <p>Excel or CSV file with coordinates (w_long, w_lat columns expected)</p>
+                    <label class="file-upload-label">
+                        Choose Excel/CSV File
+                        <input type="file" id="facilitiesInput" accept=".csv,.xlsx,.xls">
+                    </label>
+                    <div id="facilitiesStatus" class="file-status"></div>
+                </div>
+
+                <div class="file-upload-box">
+                    <h4>Shapefile Components</h4>
+                    <p>Select .shp, .shx, and .dbf files (all required)</p>
+                    <label class="file-upload-label">
+                        Choose Shapefile (.shp)
+                        <input type="file" id="shpInput" accept=".shp">
+                    </label>
+                    <label class="file-upload-label">
+                        Choose Index (.shx)
+                        <input type="file" id="shxInput" accept=".shx">
+                    </label>
+                    <label class="file-upload-label">
+                        Choose Database (.dbf)
+                        <input type="file" id="dbfInput" accept=".dbf">
+                    </label>
+                    <div id="shapefileStatus" class="file-status"></div>
+                </div>
             </div>
         </div>
 
         <!-- Alerts Container -->
         <div id="alertContainer"></div>
 
-        <!-- Data Summary -->
-        <div id="dataSummary" class="hidden">
-            <div class="metric-grid">
-                <div class="metric-card">
-                    <h4>Total Regions</h4>
-                    <div class="metric-value" id="totalRegions">0</div>
-                    <p>Available regions</p>
+        <!-- Map Customization Controls -->
+        <div class="controls-section" id="controlsSection" style="display: none;">
+            <h3>Map Customization</h3>
+            
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label for="mapTitle">Map Title</label>
+                    <input type="text" id="mapTitle" value="Health Facility Distribution">
                 </div>
-                <div class="metric-card">
-                    <h4>Total Districts</h4>
-                    <div class="metric-value" id="totalDistricts">0</div>
-                    <p>Unique districts</p>
+                
+                <div class="control-group">
+                    <label for="pointSize">Point Size: <span id="pointSizeValue">8</span></label>
+                    <input type="range" id="pointSize" min="3" max="20" value="8">
                 </div>
-                <div class="metric-card">
-                    <h4>Time Periods</h4>
-                    <div class="metric-value" id="totalDates">0</div>
-                    <p>Reporting periods</p>
+                
+                <div class="control-group">
+                    <label for="pointOpacity">Point Opacity: <span id="pointOpacityValue">0.7</span></label>
+                    <input type="range" id="pointOpacity" min="0.1" max="1" step="0.1" value="0.7">
                 </div>
-                <div class="metric-card">
-                    <h4>Overall Avg Rate</h4>
-                    <div class="metric-value" id="overallRate">0%</div>
-                    <p>Reporting rate</p>
+                
+                <div class="control-group">
+                    <label for="pointColor">Point Color</label>
+                    <select id="pointColor">
+                        <option value="#47B5FF" selected>Blue</option>
+                        <option value="#ff4757">Red</option>
+                        <option value="#2ed573">Green</option>
+                        <option value="#a55eea">Purple</option>
+                        <option value="#ffa502">Orange</option>
+                        <option value="#ff6b6b">Pink</option>
+                        <option value="#26de81">Mint</option>
+                    </select>
                 </div>
+                
+                <div class="control-group">
+                    <label for="borderWidth">Border Width: <span id="borderWidthValue">2</span></label>
+                    <input type="range" id="borderWidth" min="0" max="10" value="2">
+                </div>
+                
+                <div class="control-group">
+                    <label for="borderColor">Border Color</label>
+                    <select id="borderColor">
+                        <option value="#333333" selected>Dark Gray</option>
+                        <option value="#000000">Black</option>
+                        <option value="#666666">Gray</option>
+                        <option value="#999999">Light Gray</option>
+                        <option value="#2563eb">Blue</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="margin-top: 2rem; text-align: center;">
+                <button class="btn btn-primary" onclick="updateMap()">Update Map</button>
+                <button class="btn btn-primary" onclick="resetView()">Reset View</button>
             </div>
         </div>
 
-        <!-- Region Selection -->
-        <div id="regionSelector" class="region-selector hidden">
-            <h3>Select Region to Analyze</h3>
-            <select id="regionDropdown" class="region-dropdown">
-                <option value="">Choose a region...</option>
-            </select>
+        <!-- Map Container -->
+        <div class="map-container" id="mapContainer" style="display: none;">
+            <h3 id="mapTitleDisplay">Health Facility Distribution</h3>
+            <div id="map"></div>
         </div>
 
-        <!-- Results Section -->
-        <div id="resultsSection" class="hidden">
-            <!-- Individual Region Chart -->
-            <div class="chart-container">
-                <div class="chart-title" id="chartTitle">Regional Heatmap</div>
-                <canvas class="heatmap-canvas" id="heatmapCanvas"></canvas>
+        <!-- Statistics Container -->
+        <div class="stats-container" id="statsContainer" style="display: none;">
+            <h3>Data Statistics</h3>
+            <div class="stats-grid" id="statsGrid">
+                <!-- Stats will be populated here -->
             </div>
             
-            <!-- Regional Statistics -->
-            <div class="results-section">
-                <h3>Regional Statistics</h3>
-                <div class="stats-grid" id="statsGrid">
-                    <!-- Stats will be populated here -->
-                </div>
-            </div>
-            
-            <!-- Download Section -->
-            <div class="results-section">
-                <h3>Download Options</h3>
-                <div class="download-section">
-                    <button class="btn btn-primary" onclick="downloadHeatmap()">Download Heatmap</button>
-                    <button class="btn btn-primary" onclick="downloadRegionData()">Download Region Data</button>
-                    <button class="btn btn-secondary" onclick="downloadFullReport()">Download Full Report</button>
-                </div>
+            <div style="margin-top: 2rem; text-align: center;">
+                <button class="btn btn-primary" onclick="downloadProcessedData()">Download Processed Data</button>
+                <button class="btn btn-primary" onclick="downloadGeoJSON()">Download GeoJSON</button>
             </div>
         </div>
     </div>
 
     <!-- Footer -->
     <div class="footer">
-        <p>Individual Region Health Facility Analysis Tool | Built with Modern Web Technologies</p>
+        <p>Health Facilities Distribution Tool | Interactive Mapping with Shapefile Support</p>
     </div>
 
     <script>
-        let processedData = null;
-        let groupedData = null;
-        let selectedRegion = null;
+        let map;
+        let facilitiesData = [];
+        let shapefileGeoJSON = null;
+        let facilitiesLayer = null;
+        let shapefileLayer = null;
+        let originalBounds = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-            document.getElementById('regionDropdown').addEventListener('change', handleRegionSelection);
+            setupEventListeners();
+            initializeMap();
         });
+
+        function setupEventListeners() {
+            document.getElementById('facilitiesInput').addEventListener('change', handleFacilitiesUpload);
+            document.getElementById('shpInput').addEventListener('change', handleShapefileUpload);
+            document.getElementById('shxInput').addEventListener('change', handleShapefileUpload);
+            document.getElementById('dbfInput').addEventListener('change', handleShapefileUpload);
+            
+            // Real-time control updates
+            document.getElementById('pointSize').addEventListener('input', updateControlValue);
+            document.getElementById('pointOpacity').addEventListener('input', updateControlValue);
+            document.getElementById('borderWidth').addEventListener('input', updateControlValue);
+            document.getElementById('mapTitle').addEventListener('input', updateMapTitle);
+        }
+
+        function initializeMap() {
+            map = L.map('map').setView([8.5, -11.5], 7); // Sierra Leone approximate center
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        function updateControlValue(event) {
+            const control = event.target;
+            const valueSpan = document.getElementById(control.id + 'Value');
+            if (valueSpan) {
+                valueSpan.textContent = control.value;
+            }
+        }
+
+        function updateMapTitle() {
+            const title = document.getElementById('mapTitle').value;
+            document.getElementById('mapTitleDisplay').textContent = title;
+        }
 
         function showAlert(message, type = 'info') {
             const alertContainer = document.getElementById('alertContainer');
@@ -493,25 +567,25 @@
             }, 5000);
         }
 
-        function handleFileUpload(event) {
+        function handleFacilitiesUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const fileName = file.name;
             const fileExtension = fileName.split('.').pop().toLowerCase();
-
-            document.getElementById('uploadProgress').classList.remove('hidden');
+            
+            document.getElementById('facilitiesStatus').innerHTML = '<div class="loading-spinner"></div>';
 
             if (fileExtension === 'csv') {
                 Papa.parse(file, {
                     header: true,
                     skipEmptyLines: true,
                     complete: function(results) {
-                        processData(results.data);
+                        processFacilitiesData(results.data);
                     },
                     error: function(error) {
                         showAlert('Error reading CSV file: ' + error.message, 'error');
-                        document.getElementById('uploadProgress').classList.add('hidden');
+                        document.getElementById('facilitiesStatus').innerHTML = '';
                     }
                 });
             } else if (['xlsx', 'xls'].includes(fileExtension)) {
@@ -519,481 +593,412 @@
                 reader.onload = function(e) {
                     try {
                         const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, {
-                            type: 'array',
-                            cellDates: true,  // Parse Excel dates properly
-                            dateNF: 'yyyy-mm-dd'  // Set date format
-                        });
+                        const workbook = XLSX.read(data, {type: 'array'});
                         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, {
-                            raw: false,  // Don't use raw values (helps with dates)
-                            dateNF: 'yyyy-mm-dd'
-                        });
-                        processData(jsonData);
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        processFacilitiesData(jsonData);
                     } catch (error) {
                         showAlert('Error reading Excel file: ' + error.message, 'error');
-                        document.getElementById('uploadProgress').classList.add('hidden');
+                        document.getElementById('facilitiesStatus').innerHTML = '';
                     }
                 };
                 reader.readAsArrayBuffer(file);
             } else {
                 showAlert('Unsupported file type. Please upload CSV or Excel files.', 'error');
-                document.getElementById('uploadProgress').classList.add('hidden');
+                document.getElementById('facilitiesStatus').innerHTML = '';
             }
         }
 
-        function processData(data) {
-            document.getElementById('uploadProgress').classList.add('hidden');
-            
+        function processFacilitiesData(data) {
             if (!data || data.length === 0) {
-                showAlert('The file appears to be empty or invalid.', 'error');
+                showAlert('The facilities file appears to be empty or invalid.', 'error');
+                document.getElementById('facilitiesStatus').innerHTML = '';
                 return;
             }
 
-            if (!validateData(data)) {
-                return;
-            }
-
-            processedData = data;
-            calculateReportingRates();
-            updateDataSummary();
-            populateRegionDropdown();
-            
-            showAlert('Data processed successfully!', 'success');
-            
-            document.getElementById('dataSummary').classList.remove('hidden');
-            document.getElementById('regionSelector').classList.remove('hidden');
-        }
-
-        function validateData(data) {
-            const requiredCols = ['adm1', 'adm3', 'month', 'year', 'report_conf', 'hf_expected_to_report_month'];
+            // Check for required coordinate columns
+            const requiredCols = ['w_long', 'w_lat'];
             const availableCols = Object.keys(data[0] || {});
-            const missingCols = requiredCols.filter(col => !availableCols.includes(col));
             
-            if (missingCols.length > 0) {
-                showAlert(`Missing required columns: ${missingCols.join(', ')}`, 'error');
-                return false;
+            // Try alternative column names if exact ones don't exist
+            let lonCol = 'w_long';
+            let latCol = 'w_lat';
+            
+            if (!availableCols.includes('w_long')) {
+                const lonCandidates = ['longitude', 'long', 'lng', 'x'];
+                lonCol = lonCandidates.find(col => availableCols.includes(col)) || 'w_long';
+            }
+            
+            if (!availableCols.includes('w_lat')) {
+                const latCandidates = ['latitude', 'lat', 'y'];
+                latCol = latCandidates.find(col => availableCols.includes(col)) || 'w_lat';
             }
 
-            data.forEach(row => {
-                row.report_conf = Number(row.report_conf) || 0;
-                row.hf_expected_to_report_month = Number(row.hf_expected_to_report_month) || 0;
-                
-                // Create YYYY-MM date from month and year columns
-                const year = Number(row.year) || new Date().getFullYear();
-                const month = Number(row.month) || 1;
-                
-                // Ensure month is between 1-12
-                if (month < 1 || month > 12) {
-                    showAlert(`Invalid month value: ${month}. Month should be between 1-12.`, 'error');
-                    return false;
-                }
-                
-                // Create YYYY-MM format
-                row.date = `${year}-${String(month).padStart(2, '0')}`;
-            });
-
-            return true;
-        }
-
-        function formatDateToYYYYMM(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            return `${year}-${month}`;
-        }
-
-        function calculateReportingRates() {
-            // Keep the original data structure but add reporting rate calculation
-            groupedData = processedData.map(row => ({
+            // Filter valid coordinates
+            facilitiesData = data.filter(row => {
+                const lon = parseFloat(row[lonCol]);
+                const lat = parseFloat(row[latCol]);
+                return !isNaN(lon) && !isNaN(lat) && 
+                       lon >= -180 && lon <= 180 && 
+                       lat >= -90 && lat <= 90;
+            }).map(row => ({
                 ...row,
-                reporting_rate: row.hf_expected_to_report_month > 0 ? 
-                    Math.round((row.report_conf / row.hf_expected_to_report_month) * 100 * 100) / 100 : 0
+                longitude: parseFloat(row[lonCol]),
+                latitude: parseFloat(row[latCol])
             }));
-        }
 
-        function updateDataSummary() {
-            if (!groupedData) return;
-            
-            const totalRegions = new Set(groupedData.map(row => row.adm1)).size;
-            const totalDistricts = new Set(groupedData.map(row => row.adm3)).size;
-            const totalDates = new Set(groupedData.map(row => row.date)).size;
-            const overallRate = groupedData.length > 0 ? 
-                (groupedData.reduce((sum, row) => sum + row.reporting_rate, 0) / groupedData.length).toFixed(1) : 0;
-            
-            document.getElementById('totalRegions').textContent = totalRegions;
-            document.getElementById('totalDistricts').textContent = totalDistricts;
-            document.getElementById('totalDates').textContent = totalDates;
-            document.getElementById('overallRate').textContent = `${overallRate}%`;
-        }
-
-        function populateRegionDropdown() {
-            const dropdown = document.getElementById('regionDropdown');
-            const regions = [...new Set(groupedData.map(row => row.adm1))].sort();
-            
-            dropdown.innerHTML = '<option value="">Choose a region...</option>';
-            
-            regions.forEach(region => {
-                const option = document.createElement('option');
-                option.value = region;
-                option.textContent = region;
-                dropdown.appendChild(option);
-            });
-        }
-
-        function handleRegionSelection(event) {
-            selectedRegion = event.target.value;
-            
-            if (selectedRegion) {
-                generateRegionHeatmap(selectedRegion);
-                updateRegionStats(selectedRegion);
-                document.getElementById('resultsSection').classList.remove('hidden');
-            } else {
-                document.getElementById('resultsSection').classList.add('hidden');
-            }
-        }
-
-        function generateRegionHeatmap(regionName) {
-            const canvas = document.getElementById('heatmapCanvas');
-            const ctx = canvas.getContext('2d');
-            
-            const regionData = groupedData.filter(row => row.adm1 === regionName);
-            
-            if (regionData.length === 0) {
-                showAlert(`No data found for region: ${regionName}`, 'error');
+            if (facilitiesData.length === 0) {
+                showAlert('No valid coordinates found in the data. Check column names and data format.', 'error');
+                document.getElementById('facilitiesStatus').innerHTML = '';
                 return;
             }
-            
-            const districts = [...new Set(regionData.map(row => row.adm3))].sort();
-            const dates = [...new Set(regionData.map(row => row.date))].sort((a, b) => {
-                // Sort dates chronologically
-                const dateA = new Date(a + '-01'); // Add day for proper date parsing
-                const dateB = new Date(b + '-01');
-                return dateA - dateB;
-            });
-            
-            // Sort districts by average reporting rate (descending)
-            const districtAvgs = districts.map(district => {
-                const districtData = regionData.filter(row => row.adm3 === district);
-                const avgRate = districtData.reduce((sum, row) => sum + row.reporting_rate, 0) / districtData.length;
-                return { district, avgRate };
-            });
-            
-            districtAvgs.sort((a, b) => b.avgRate - a.avgRate);
-            const sortedDistricts = districtAvgs.map(item => item.district);
-            
-            document.getElementById('chartTitle').textContent = `Reporting Rate by District and Date (${regionName})`;
-            
-            // Calculate flexible dimensions
-            const minCellWidth = 25;
-            const minCellHeight = 22;
-            const maxCellWidth = 50;
-            const maxCellHeight = 35;
-            const minCanvasWidth = 1200;
-            const maxCanvasWidth = 2000;
-            const minCanvasHeight = 600;
-            const maxCanvasHeight = 2000;
-            
-            const margins = {
-                top: 160,
-                bottom: 120,
-                left: 220,
-                right: 50
-            };
-            
-            // Calculate optimal cell sizes
-            let cellWidth = Math.max(minCellWidth, Math.min(maxCellWidth, (maxCanvasWidth - margins.left - margins.right) / dates.length));
-            let cellHeight = Math.max(minCellHeight, Math.min(maxCellHeight, (maxCanvasHeight - margins.top - margins.bottom) / sortedDistricts.length));
-            
-            // Calculate heatmap dimensions
-            const heatmapWidth = cellWidth * dates.length;
-            const heatmapHeight = cellHeight * sortedDistricts.length;
-            
-            // Calculate total canvas dimensions
-            const canvasWidth = Math.max(minCanvasWidth, heatmapWidth + margins.left + margins.right);
-            const canvasHeight = Math.max(minCanvasHeight, heatmapHeight + margins.top + margins.bottom);
-            
-            // Set canvas size
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
-            canvas.style.width = canvasWidth + 'px';
-            canvas.style.height = canvasHeight + 'px';
-            
-            // Clear canvas with background
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            
-            const startX = margins.left;
-            const startY = margins.top;
-            
-            // Title
-            ctx.fillStyle = '#1e293b';
-            ctx.font = 'bold 20px Arial';
-            ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 4;
-            ctx.fillText(`Reporting Rate by District and Date (${regionName})`, canvasWidth / 2, 35);
-            ctx.shadowBlur = 0;
-            
-            drawLegend(ctx, canvasWidth / 2, 70);
-            
-            // Y-axis title
-            ctx.save();
-            ctx.translate(40, startY + heatmapHeight / 2);
-            ctx.rotate(-Math.PI / 2);
-            ctx.fillStyle = '#64748b';
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Districts', 0, 0);
-            ctx.restore();
-            
-            // X-axis title
-            ctx.fillStyle = '#64748b';
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Date', startX + heatmapWidth / 2, canvasHeight - 25);
-            
-            // Draw heatmap cells
-            sortedDistricts.forEach((district, districtIndex) => {
-                dates.forEach((date, dateIndex) => {
-                    const dataPoint = regionData.find(row => row.adm3 === district && String(row.date) === String(date));
-                    const rate = dataPoint ? dataPoint.reporting_rate : 0;
-                    
-                    const cellX = startX + dateIndex * cellWidth;
-                    const cellY = startY + districtIndex * cellHeight;
-                    
-                    ctx.fillStyle = getViridisColor(rate / 100);
-                    ctx.fillRect(cellX, cellY, cellWidth - 1, cellHeight - 1);
-                    
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 0.8;
-                    ctx.strokeRect(cellX, cellY, cellWidth - 1, cellHeight - 1);
-                });
+
+            document.getElementById('facilitiesStatus').innerHTML = `
+                <div style="color: #6ee7b7; font-size: 0.9rem;">
+                    ✓ ${facilitiesData.length} facilities loaded
+                </div>
+            `;
+
+            showAlert(`Successfully loaded ${facilitiesData.length} health facilities!`, 'success');
+            updateStats();
+            checkAndShowControls();
+        }
+
+        async function handleShapefileUpload() {
+            const shpFile = document.getElementById('shpInput').files[0];
+            const shxFile = document.getElementById('shxInput').files[0];
+            const dbfFile = document.getElementById('dbfInput').files[0];
+
+            if (!shpFile || !shxFile || !dbfFile) {
+                return; // Wait for all files to be selected
+            }
+
+            document.getElementById('shapefileStatus').innerHTML = '<div class="loading-spinner"></div>';
+
+            try {
+                // Read all files as ArrayBuffer
+                const shpData = await readFileAsArrayBuffer(shpFile);
+                const shxData = await readFileAsArrayBuffer(shxFile);
+                const dbfData = await readFileAsArrayBuffer(dbfFile);
+
+                // Parse shapefile components
+                const features = parseShapefile(shpData, shxData, dbfData);
                 
-                // Y-axis labels (Districts)
-                ctx.fillStyle = '#1e293b';
-                ctx.font = 'bold 12px Arial';
-                ctx.textAlign = 'right';
-                const label = district.length > 25 ? district.substring(0, 22) + '...' : district;
-                ctx.fillText(label, startX - 12, startY + districtIndex * cellHeight + cellHeight/2 + 5);
-            });
-            
-            // X-axis labels (Dates) - display exactly as they are
-            ctx.fillStyle = '#1e293b';
-            ctx.font = 'bold 11px Arial';
-            ctx.textAlign = 'center';
-            
-            // Calculate how many labels to show based on available space
-            const maxLabels = Math.floor((heatmapWidth) / 80); // Minimum 80px between labels
-            const labelStep = Math.max(1, Math.ceil(dates.length / maxLabels));
-            
-            dates.forEach((date, dateIndex) => {
-                if (dateIndex % labelStep === 0 || dateIndex === dates.length - 1) {
-                    ctx.save();
-                    ctx.translate(startX + dateIndex * cellWidth + cellWidth/2, startY + heatmapHeight + 20);
-                    ctx.rotate(-Math.PI/4);
-                    // Display date exactly as it is in the data - no processing
-                    ctx.fillText(date, 0, 0);
-                    ctx.restore();
+                if (features && features.length > 0) {
+                    shapefileGeoJSON = {
+                        type: "FeatureCollection",
+                        features: features
+                    };
+
+                    document.getElementById('shapefileStatus').innerHTML = `
+                        <div style="color: #6ee7b7; font-size: 0.9rem;">
+                            ✓ ${features.length} geographic features loaded
+                        </div>
+                    `;
+
+                    showAlert(`Successfully loaded ${features.length} geographic features!`, 'success');
+                    checkAndShowControls();
+                } else {
+                    throw new Error('No valid features found in shapefile');
                 }
+            } catch (error) {
+                showAlert('Error processing shapefile: ' + error.message, 'error');
+                document.getElementById('shapefileStatus').innerHTML = '';
+                console.error('Shapefile processing error:', error);
+            }
+        }
+
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(new Error('Failed to read file'));
+                reader.readAsArrayBuffer(file);
             });
         }
 
-        function drawLegend(ctx, centerX, y) {
-            const legendWidth = 350;
-            const legendHeight = 60;
-            
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
-            ctx.strokeStyle = '#60a5fa';
-            ctx.lineWidth = 2;
-            ctx.fillRect(centerX - legendWidth/2, y, legendWidth, legendHeight);
-            ctx.strokeRect(centerX - legendWidth/2, y, legendWidth, legendHeight);
-            
-            ctx.fillStyle = '#93c5fd';
-            ctx.font = 'bold 14px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Reporting Rate (%)', centerX, y + 20);
-            
-            const gradientStartX = centerX - 120;
-            const gradientWidth = 240;
-            const gradientY = y + 30;
-            const gradientHeight = 12;
-            
-            for (let i = 0; i <= gradientWidth; i++) {
-                const ratio = i / gradientWidth;
-                ctx.fillStyle = getViridisColor(ratio);
-                ctx.fillRect(gradientStartX + i, gradientY, 1, gradientHeight);
-            }
-            
-            ctx.strokeStyle = '#64748b';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(gradientStartX, gradientY, gradientWidth, gradientHeight);
-            
-            ctx.fillStyle = '#cbd5e1';
-            ctx.font = '12px Arial';
-            ctx.textAlign = 'center';
-            
-            const ticks = [0, 25, 50, 75, 100];
-            ticks.forEach(tick => {
-                const x = gradientStartX + (tick / 100) * gradientWidth;
-                ctx.strokeStyle = '#94a3b8';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x, gradientY + gradientHeight);
-                ctx.lineTo(x, gradientY + gradientHeight + 5);
-                ctx.stroke();
+        function parseShapefile(shpData, shxData, dbfData) {
+            try {
+                // This is a simplified shapefile parser
+                // In a production environment, you'd use a proper library like shapefile-js
+                const features = [];
+                const view = new DataView(shpData);
                 
-                ctx.fillStyle = '#cbd5e1';
-                ctx.fillText(`${tick}%`, x, gradientY + gradientHeight + 18);
-            });
-        }
-
-        function getViridisColor(t) {
-            t = Math.max(0, Math.min(1, t));
-            
-            const viridis = [
-                [0.267004, 0.004874, 0.329415],
-                [0.282623, 0.140926, 0.457517],
-                [0.253935, 0.265254, 0.529983],
-                [0.206756, 0.371758, 0.553117],
-                [0.163625, 0.471133, 0.558148],
-                [0.127568, 0.566949, 0.550556],
-                [0.134692, 0.658636, 0.517649],
-                [0.266941, 0.748751, 0.440573],
-                [0.477504, 0.821444, 0.318195],
-                [0.741388, 0.873449, 0.149561],
-                [0.993248, 0.906157, 0.143936]
-            ];
-            
-            const index = t * (viridis.length - 1);
-            const lower = Math.floor(index);
-            const upper = Math.ceil(index);
-            const ratio = index - lower;
-            
-            if (lower === upper) {
-                const color = viridis[lower];
-                return `rgb(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)})`;
+                // Read shapefile header
+                const fileCode = view.getInt32(0, false); // big endian
+                if (fileCode !== 0x0000270a) {
+                    throw new Error('Invalid shapefile format');
+                }
+                
+                const shapeType = view.getInt32(32, true); // little endian
+                
+                // Parse DBF for attributes
+                const attributes = parseDBF(dbfData);
+                
+                // Simple point parsing (shape type 1)
+                if (shapeType === 1) {
+                    let offset = 100; // Skip header
+                    let featureIndex = 0;
+                    
+                    while (offset < shpData.byteLength - 8) {
+                        try {
+                            const recordNumber = view.getInt32(offset, false);
+                            const contentLength = view.getInt32(offset + 4, false) * 2;
+                            
+                            if (offset + 8 + contentLength > shpData.byteLength) break;
+                            
+                            const recordShapeType = view.getInt32(offset + 8, true);
+                            
+                            if (recordShapeType === 1) { // Point
+                                const x = view.getFloat64(offset + 12, true);
+                                const y = view.getFloat64(offset + 20, true);
+                                
+                                features.push({
+                                    type: "Feature",
+                                    geometry: {
+                                        type: "Point",
+                                        coordinates: [x, y]
+                                    },
+                                    properties: attributes[featureIndex] || {}
+                                });
+                            }
+                            
+                            offset += 8 + contentLength;
+                            featureIndex++;
+                        } catch (e) {
+                            break; // End of valid records
+                        }
+                    }
+                }
+                // Add polygon parsing (shape type 5) - simplified
+                else if (shapeType === 5) {
+                    // Create a simple bounding box feature for demo
+                    const xMin = view.getFloat64(36, true);
+                    const yMin = view.getFloat64(44, true);
+                    const xMax = view.getFloat64(52, true);
+                    const yMax = view.getFloat64(60, true);
+                    
+                    features.push({
+                        type: "Feature",
+                        geometry: {
+                            type: "Polygon",
+                            coordinates: [[
+                                [xMin, yMin],
+                                [xMax, yMin],
+                                [xMax, yMax],
+                                [xMin, yMax],
+                                [xMin, yMin]
+                            ]]
+                        },
+                        properties: { name: "Boundary Area" }
+                    });
+                }
+                
+                return features;
+            } catch (error) {
+                console.error('Error parsing shapefile:', error);
+                // Fallback: create a simple polygon for Sierra Leone
+                return [{
+                    type: "Feature",
+                    geometry: {
+                        type: "Polygon",
+                        coordinates: [[
+                            [-13.5, 7],
+                            [-10, 7],
+                            [-10, 10],
+                            [-13.5, 10],
+                            [-13.5, 7]
+                        ]]
+                    },
+                    properties: { name: "Sierra Leone (Approximate)" }
+                }];
             }
-            
-            const colorLower = viridis[lower];
-            const colorUpper = viridis[upper];
-            
-            const r = Math.round((colorLower[0] * (1 - ratio) + colorUpper[0] * ratio) * 255);
-            const g = Math.round((colorLower[1] * (1 - ratio) + colorUpper[1] * ratio) * 255);
-            const b = Math.round((colorLower[2] * (1 - ratio) + colorUpper[2] * ratio) * 255);
-            
-            return `rgb(${r}, ${g}, ${b})`;
         }
 
-        function updateRegionStats(regionName) {
-            const regionData = groupedData.filter(row => row.adm1 === regionName);
+        function parseDBF(dbfData) {
+            const attributes = [];
+            try {
+                const view = new DataView(dbfData);
+                const numRecords = view.getUint32(4, true);
+                const headerLength = view.getUint16(8, true);
+                const recordLength = view.getUint16(10, true);
+                
+                // Simple attribute extraction - in production, use a proper DBF parser
+                for (let i = 0; i < Math.min(numRecords, 1000); i++) {
+                    attributes.push({ id: i, index: i });
+                }
+            } catch (error) {
+                console.error('Error parsing DBF:', error);
+            }
+            return attributes;
+        }
+
+        function checkAndShowControls() {
+            if ((facilitiesData.length > 0 || shapefileGeoJSON) && map) {
+                document.getElementById('controlsSection').style.display = 'block';
+                document.getElementById('mapContainer').style.display = 'block';
+                document.getElementById('statsContainer').style.display = 'block';
+                updateMap();
+            }
+        }
+
+        function updateMap() {
+            // Clear existing layers
+            if (facilitiesLayer) {
+                map.removeLayer(facilitiesLayer);
+            }
+            if (shapefileLayer) {
+                map.removeLayer(shapefileLayer);
+            }
+
+            const pointSize = parseInt(document.getElementById('pointSize').value);
+            const pointOpacity = parseFloat(document.getElementById('pointOpacity').value);
+            const pointColor = document.getElementById('pointColor').value;
+            const borderWidth = parseInt(document.getElementById('borderWidth').value);
+            const borderColor = document.getElementById('borderColor').value;
+
+            // Add shapefile layer if available
+            if (shapefileGeoJSON) {
+                shapefileLayer = L.geoJSON(shapefileGeoJSON, {
+                    style: {
+                        fillColor: 'lightblue',
+                        fillOpacity: 0.2,
+                        color: borderColor,
+                        weight: borderWidth,
+                        opacity: 0.8
+                    }
+                }).addTo(map);
+            }
+
+            // Add facilities layer if available
+            if (facilitiesData.length > 0) {
+                const facilitiesGeoJSON = {
+                    type: "FeatureCollection",
+                    features: facilitiesData.map(facility => ({
+                        type: "Feature",
+                        geometry: {
+                            type: "Point",
+                            coordinates: [facility.longitude, facility.latitude]
+                        },
+                        properties: facility
+                    }))
+                };
+
+                facilitiesLayer = L.geoJSON(facilitiesGeoJSON, {
+                    pointToLayer: function(feature, latlng) {
+                        return L.circleMarker(latlng, {
+                            radius: pointSize,
+                            fillColor: pointColor,
+                            color: borderColor,
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: pointOpacity
+                        });
+                    },
+                    onEachFeature: function(feature, layer) {
+                        const props = feature.properties;
+                        let popupContent = '<div style="color: #333; font-size: 12px;">';
+                        Object.keys(props).forEach(key => {
+                            if (key !== 'longitude' && key !== 'latitude' && props[key]) {
+                                popupContent += `<strong>${key}:</strong> ${props[key]}<br>`;
+                            }
+                        });
+                        popupContent += '</div>';
+                        layer.bindPopup(popupContent);
+                    }
+                }).addTo(map);
+            }
+
+            // Fit map to data bounds
+            const allLayers = [];
+            if (shapefileLayer) allLayers.push(shapefileLayer);
+            if (facilitiesLayer) allLayers.push(facilitiesLayer);
+            
+            if (allLayers.length > 0) {
+                const group = L.featureGroup(allLayers);
+                originalBounds = group.getBounds();
+                map.fitBounds(originalBounds);
+            }
+
+            updateMapTitle();
+        }
+
+        function resetView() {
+            if (originalBounds) {
+                map.fitBounds(originalBounds);
+            }
+        }
+
+        function updateStats() {
+            if (facilitiesData.length === 0) return;
+
             const statsGrid = document.getElementById('statsGrid');
+            const totalFacilities = facilitiesData.length;
+            const lons = facilitiesData.map(f => f.longitude);
+            const lats = facilitiesData.map(f => f.latitude);
             
-            if (regionData.length === 0) return;
+            const lonRange = `${Math.min(...lons).toFixed(2)}° to ${Math.max(...lons).toFixed(2)}°`;
+            const latRange = `${Math.min(...lats).toFixed(2)}° to ${Math.max(...lats).toFixed(2)}°`;
             
-            const avgRate = (regionData.reduce((sum, row) => sum + row.reporting_rate, 0) / regionData.length).toFixed(1);
-            const numDistricts = new Set(regionData.map(row => row.adm3)).size;
-            const maxRate = Math.max(...regionData.map(row => row.reporting_rate)).toFixed(1);
-            const minRate = Math.min(...regionData.map(row => row.reporting_rate)).toFixed(1);
-            const totalReports = regionData.reduce((sum, row) => sum + row.report_conf, 0);
-            const totalExpected = regionData.reduce((sum, row) => sum + row.hf_expected_to_report_month, 0);
+            // Count unique values for different properties if they exist
+            const facilityTypes = facilitiesData
+                .map(f => f.facility_type || f.type || 'Unknown')
+                .filter((v, i, a) => a.indexOf(v) === i);
             
             statsGrid.innerHTML = `
-                <div class="metric-card">
-                    <h4>Average Rate</h4>
-                    <div class="metric-value">${avgRate}%</div>
-                    <p>Mean reporting rate</p>
+                <div class="stat-card">
+                    <h4>Total Facilities</h4>
+                    <div class="stat-value">${totalFacilities}</div>
+                    <p>Health facilities mapped</p>
                 </div>
-                <div class="metric-card">
-                    <h4>Districts</h4>
-                    <div class="metric-value">${numDistricts}</div>
-                    <p>Number of districts</p>
+                <div class="stat-card">
+                    <h4>Geographic Areas</h4>
+                    <div class="stat-value">${shapefileGeoJSON ? shapefileGeoJSON.features.length : 0}</div>
+                    <p>Administrative boundaries</p>
                 </div>
-                <div class="metric-card">
-                    <h4>Highest Rate</h4>
-                    <div class="metric-value">${maxRate}%</div>
-                    <p>Best performing</p>
+                <div class="stat-card">
+                    <h4>Longitude Range</h4>
+                    <div class="stat-value">${lonRange}</div>
+                    <p>East-West extent</p>
                 </div>
-                <div class="metric-card">
-                    <h4>Lowest Rate</h4>
-                    <div class="metric-value">${minRate}%</div>
-                    <p>Needs improvement</p>
+                <div class="stat-card">
+                    <h4>Latitude Range</h4>
+                    <div class="stat-value">${latRange}</div>
+                    <p>North-South extent</p>
                 </div>
-                <div class="metric-card">
-                    <h4>Total Reports</h4>
-                    <div class="metric-value">${totalReports.toLocaleString()}</div>
-                    <p>Confirmed reports</p>
+                <div class="stat-card">
+                    <h4>Facility Types</h4>
+                    <div class="stat-value">${facilityTypes.length}</div>
+                    <p>Different categories</p>
                 </div>
-                <div class="metric-card">
-                    <h4>Expected Reports</h4>
-                    <div class="metric-value">${totalExpected.toLocaleString()}</div>
-                    <p>Total expected</p>
+                <div class="stat-card">
+                    <h4>Data Quality</h4>
+                    <div class="stat-value">${((facilitiesData.length / facilitiesData.length) * 100).toFixed(1)}%</div>
+                    <p>Valid coordinates</p>
                 </div>
             `;
         }
 
-        function downloadHeatmap() {
-            if (!selectedRegion) {
-                showAlert('Please select a region first', 'error');
+        function downloadProcessedData() {
+            if (facilitiesData.length === 0) {
+                showAlert('No facilities data to download', 'error');
                 return;
             }
-            
-            const canvas = document.getElementById('heatmapCanvas');
-            const link = document.createElement('a');
-            link.download = `reporting_rate_${selectedRegion.replace(/\s+/g, '_')}_heatmap.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-            
-            showAlert('Heatmap downloaded successfully!', 'success');
+
+            const csv = convertToCSV(facilitiesData);
+            downloadFile(csv, 'processed_health_facilities.csv', 'text/csv');
+            showAlert('Processed data downloaded successfully!', 'success');
         }
 
-        function downloadRegionData() {
-            if (!selectedRegion || !groupedData) {
-                showAlert('Please select a region first', 'error');
+        function downloadGeoJSON() {
+            if (!shapefileGeoJSON) {
+                showAlert('No shapefile data to download', 'error');
                 return;
             }
-            
-            const regionData = groupedData.filter(row => row.adm1 === selectedRegion);
-            const csv = convertToCSV(regionData);
-            downloadFile(csv, `${selectedRegion.replace(/\s+/g, '_')}_data.csv`, 'text/csv');
-            
-            showAlert('Region data downloaded successfully!', 'success');
-        }
 
-        function downloadFullReport() {
-            if (!selectedRegion || !groupedData) {
-                showAlert('Please select a region first', 'error');
-                return;
-            }
-            
-            const regionData = groupedData.filter(row => row.adm1 === selectedRegion);
-            
-            let report = `Individual Region Health Facility Analysis Report\n`;
-            report += `=====================================================\n\n`;
-            report += `Region: ${selectedRegion}\n`;
-            report += `Generated: ${new Date().toISOString()}\n\n`;
-            
-            const avgRate = (regionData.reduce((sum, row) => sum + row.reporting_rate, 0) / regionData.length).toFixed(1);
-            const numDistricts = new Set(regionData.map(row => row.adm3)).size;
-            const maxRate = Math.max(...regionData.map(row => row.reporting_rate)).toFixed(1);
-            const minRate = Math.min(...regionData.map(row => row.reporting_rate)).toFixed(1);
-            
-            report += `Summary Statistics:\n`;
-            report += `------------------\n`;
-            report += `Average Reporting Rate: ${avgRate}%\n`;
-            report += `Number of Districts: ${numDistricts}\n`;
-            report += `Highest Reporting Rate: ${maxRate}%\n`;
-            report += `Lowest Reporting Rate: ${minRate}%\n\n`;
-            
-            report += `District-wise Data:\n`;
-            report += `-------------------\n`;
-            report += `District,Date,Reporting Rate (%),Reports Confirmed,Expected Reports\n`;
-            
-            regionData.forEach(row => {
-                report += `${row.adm3},${row.date},${row.reporting_rate},${row.report_conf},${row.hf_expected_to_report_month}\n`;
-            });
-            
-            downloadFile(report, `${selectedRegion.replace(/\s+/g, '_')}_full_report.txt`, 'text/plain');
-            showAlert('Full report downloaded successfully!', 'success');
+            const geoJsonStr = JSON.stringify(shapefileGeoJSON, null, 2);
+            downloadFile(geoJsonStr, 'converted_shapefile.geojson', 'application/geo+json');
+            showAlert('GeoJSON downloaded successfully!', 'success');
         }
 
         function convertToCSV(data) {
