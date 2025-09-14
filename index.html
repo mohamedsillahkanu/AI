@@ -1016,17 +1016,33 @@
             const mapElement = document.getElementById('mapContainer');
             const imageName = document.getElementById('imageName').value || 'Generated_Map';
             
+            // Temporarily adjust styles for better capture
+            const originalStyle = mapElement.style.cssText;
+            mapElement.style.padding = '20px';
+            mapElement.style.boxSizing = 'content-box';
+            
             html2canvas(mapElement, {
                 useCORS: true,
                 scale: 2,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                width: mapElement.offsetWidth + 40,
+                height: mapElement.offsetHeight + 40,
+                scrollX: 0,
+                scrollY: 0,
+                allowTaint: false,
+                foreignObjectRendering: true
             }).then(function(canvas) {
+                // Restore original style
+                mapElement.style.cssText = originalStyle;
+                
                 const link = document.createElement('a');
                 link.download = imageName + '.png';
-                link.href = canvas.toDataURL();
+                link.href = canvas.toDataURL('image/png', 1.0);
                 link.click();
                 showAlert('Map downloaded successfully!', 'success');
             }).catch(function(error) {
+                // Restore original style on error
+                mapElement.style.cssText = originalStyle;
                 showAlert('Error downloading map: ' + error.message, 'error');
             });
         }
