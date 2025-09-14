@@ -984,26 +984,29 @@
             
             let legendHTML = `<h4>${title}</h4>`;
             
-            // Add category items
+            // Calculate category counts
+            const mapColumn = document.getElementById('mapColumn').value;
+            const categoryCounts = {};
+            
+            // Count occurrences of each category in the data
+            currentData.forEach(row => {
+                const value = row[mapColumn];
+                if (value !== undefined && value !== null) {
+                    categoryCounts[value] = (categoryCounts[value] || 0) + 1;
+                }
+            });
+            
+            // Add category items with counts
             selectedCategories.forEach(category => {
                 const color = categoryColors[category];
+                const count = categoryCounts[category] || 0;
                 legendHTML += `
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: ${color};"></div>
-                        <span>${category}</span>
+                        <span>${category} (${count})</span>
                     </div>
                 `;
             });
-
-            // Add no data item
-            const noDataColor = niceColors[document.getElementById('missingValueColor').value];
-            const noDataLabel = document.getElementById('missingValueLabel').value;
-            legendHTML += `
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${noDataColor};"></div>
-                    <span>${noDataLabel}</span>
-                </div>
-            `;
 
             legend.innerHTML = legendHTML;
             document.getElementById('mapContainer').appendChild(legend);
