@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Generator - Blue Dark Theme with Shapefile Support</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/shpjs@4.0.4/dist/shp.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/leaflet-choropleth@1.1.4/dist/leaflet-choropleth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: #e1effe;
+            background: linear-gradient(135deg, #0a0e1a 0%, #0f1629 25%, #1a237e 75%, #1565c0 100%);
+            min-height: 100vh;
+        }
+
+        .main-header {
+            text-align: center;
+            padding: 3rem 0;
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 25%, #1e3a8a 75%, #2563eb 100%);
+            color: white;
+            margin-bottom: 2rem;
+            border-radius: 0 0 1rem 1rem;
+            box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .main-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+        }
+
+        .main-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .section {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+            backdrop-filter: blur(15px);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            margin: 2rem 0;
+            border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .section h3 {
+            color: #93c5fd;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .section p {
+            color: #9ca3af;
+            margin-bottom: 1rem;
+        }
+
+        .colors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .color-item {
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .color-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: #93c5fd;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid rgba(30, 64, 175, 0.3);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: rgba(15, 23, 42, 0.9);
+            color: #e1effe;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 1rem 1rem 1rem 0;
+        }
+
+        .file-input {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            color: white;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(29, 78, 216, 0.4);
+        }
+
+        .file-input:hover {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(29, 78, 216, 0.6);
+        }
+
+        .file-input input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(29, 78, 216, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(29, 78, 216, 0.6);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+            transform: translateY(-2px);
+        }
+
+        .category-config {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.8) 100%);
+            backdrop-filter: blur(15px);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .category-config h4 {
+            color: #93c5fd;
+            margin-bottom: 1rem;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 600px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            margin: 2rem 0;
+            position: relative;
+            background: #ffffff;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            backdrop-filter: blur(15px);
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, rgba(5, 150, 105, 0.2) 0%, rgba(4, 120, 87, 0.2) 100%);
+            border-left: 4px solid #059669;
+            color: #6ee7b7;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(185, 28, 28, 0.2) 100%);
+            border-left: 4px solid #dc2626;
+            color: #fca5a5;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(2, 132, 199, 0.2) 100%);
+            border-left: 4px solid #0ea5e9;
+            color: #7dd3fc;
+        }
+
+        .slider-container {
+            margin: 1rem 0;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: rgba(30, 64, 175, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .legend {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem;
+            border-radius: 10px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            min-width: 200px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .legend h4 {
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+            color: #374151;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 3px;
+            border: 1px solid rgba(0, 0, 0, 0.3);
+        }
+
+        /* Hide Leaflet attributions and controls for cleaner map */
+        .leaflet-control-attribution {
+            display: none !important;
+        }
+        
+        .leaflet-control-zoom {
+            display: none !important;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        }
+
+        .footer {
+            text-align: center;
+            color: #6b7280;
+            padding: 2rem;
+            margin-top: 3rem;
+            border-top: 1px solid rgba(37, 99, 235, 0.2);
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%);
+            backdrop-filter: blur(10px);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(30, 64, 175, 0.3);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .main-header h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 0 10px;
+            }
+
+            .section {
+                padding: 1rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .legend {
+                position: relative;
+                margin-top: 1rem;
+                transform: none;
+                right: auto;
+                top: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <h1>MAP GENERATOR</h1>
+        <p>Create customized maps with your data and shapefiles</p>
+    </div>
+
+    <div class="container">
+        <!-- Available Colors Section -->
+        <div class="section">
+            <h3>Available Colors</h3>
+            <div class="colors-grid" id="colorsGrid">
+                <!-- Colors will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- File Upload Section -->
+        <div class="section">
+            <h3>Upload Files</h3>
+            <p>Upload your data files and shapefiles for mapping</p>
+            
+            <div class="file-input-wrapper">
+                <label class="file-input">
+                    Choose Data File (CSV/Excel)
+                    <input type="file" id="dataFileInput" accept=".csv,.xlsx,.xls">
+                </label>
+            </div>
+
+            <div class="file-input-wrapper">
+                <label class="file-input">
+                    Choose Shapefile (ZIP)
+                    <input type="file" id="shapeFileInput" accept=".zip">
+                </label>
+            </div>
+
+            <div id="progressContainer" class="hidden">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <p id="progressText">Processing files...</p>
+            </div>
+        </div>
+
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Map Configuration Section -->
+        <div id="configSection" class="section hidden">
+            <h3>Map Configuration</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="mapColumn">Select Data Column:</label>
+                    <select id="mapColumn" class="form-control">
+                        <option value="">Choose a column...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="joinColumn">Join Column (Shapefile Property):</label>
+                    <select id="joinColumn" class="form-control">
+                        <option value="">Choose a property...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="mapTitle">Map Title:</label>
+                    <input type="text" id="mapTitle" class="form-control" placeholder="Enter map title">
+                </div>
+                <div class="form-group">
+                    <label for="legendTitle">Legend Title:</label>
+                    <input type="text" id="legendTitle" class="form-control" placeholder="Enter legend title">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="imageName">Image Name:</label>
+                    <input type="text" id="imageName" class="form-control" value="Generated_Map">
+                </div>
+                <div class="form-group">
+                    <label for="opacity">Fill Opacity: <span id="opacityValue">0.7</span></label>
+                    <input type="range" id="opacity" class="slider" min="0.1" max="1" step="0.1" value="0.7">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="lineWidth">Border Width: <span id="lineWidthValue">1</span></label>
+                    <input type="range" id="lineWidth" class="slider" min="0.5" max="5" step="0.1" value="1">
+                </div>
+                <div class="form-group">
+                    <label for="lineColor">Border Color:</label>
+                    <select id="lineColor" class="form-control">
+                        <!-- Populated by JavaScript -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="missingValueColor">No Data Color:</label>
+                    <select id="missingValueColor" class="form-control">
+                        <!-- Populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="missingValueLabel">No Data Label:</label>
+                    <input type="text" id="missingValueLabel" class="form-control" value="No Data">
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories Section -->
+        <div id="categoriesSection" class="section hidden">
+            <h3>Configure Categories and Colors</h3>
+            <div id="categoriesContainer">
+                <!-- Categories will be populated by JavaScript -->
+            </div>
+            
+            <div style="text-align: center; margin-top: 2rem;">
+                <button id="generateMapBtn" class="btn btn-primary">Generate Map</button>
+            </div>
+        </div>
+
+        <!-- Map Display Section -->
+        <div id="mapSection" class="section hidden">
+            <h3 id="mapSectionTitle">Generated Map</h3>
+            <div id="mapContainer" class="map-container">
+                <div id="map" style="width: 100%; height: 100%;"></div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 1rem;">
+                <button id="downloadMapBtn" class="btn btn-success">Download Map as PNG</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Enhanced Map Generator Tool | Supports Shapefiles & Data Visualization</p>
+    </div>
+
+    <script>
+        // Color palette
+        const niceColors = {
+            "Black": "#000000",
+            "Light Blue": "#4CA3DD",
+            "Soft Green": "#5DBE7E",
+            "Coral": "#FF7F50",
+            "Lavender": "#9A7CB7",
+            "Gold": "#FFBE4D",
+            "Teal": "#35B0AB",
+            "Salmon": "#FF9E80",
+            "Sky Blue": "#89CFF0",
+            "Mint": "#98FB98",
+            "Peach": "#FFDAB9",
+            "White": "#FFFFFF",
+            "Light Gray": "#D3D3D3",
+            "Gray": "#808080",
+            "Dark Gray": "#404040",
+            "Silver": "#C0C0C0",
+            "Slate Gray": "#708090"
+        };
+
+        let currentData = null;
+        let shapefileData = null;
+        let selectedCategories = [];
+        let categoryColors = {};
+        let map = null;
+        let geoJsonLayer = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            populateColors();
+            populateColorSelects();
+            bindEventListeners();
+        });
+
+        function populateColors() {
+            const colorsGrid = document.getElementById('colorsGrid');
+            colorsGrid.innerHTML = '';
+
+            Object.entries(niceColors).forEach(([name, hex]) => {
+                const colorItem = document.createElement('div');
+                colorItem.className = 'color-item';
+                colorItem.style.backgroundColor = hex;
+                colorItem.style.color = ['White', 'Light Gray', 'Silver'].includes(name) ? '#000000' : '#FFFFFF';
+                colorItem.textContent = name;
+                colorsGrid.appendChild(colorItem);
+            });
+        }
+
+        function populateColorSelects() {
+            const selects = ['lineColor', 'missingValueColor'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '';
+                Object.keys(niceColors).forEach((colorName, index) => {
+                    const option = document.createElement('option');
+                    option.value = colorName;
+                    option.textContent = colorName;
+                    if (selectId === 'lineColor' && colorName === 'Black') option.selected = true;
+                    if (selectId === 'missingValueColor' && colorName === 'Light Gray') option.selected = true;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        function bindEventListeners() {
+            document.getElementById('dataFileInput').addEventListener('change', handleDataFileUpload);
+            document.getElementById('shapeFileInput').addEventListener('change', handleShapefileUpload);
+            document.getElementById('mapColumn').addEventListener('change', loadCategories);
+            document.getElementById('generateMapBtn').addEventListener('click', generateMap);
+            document.getElementById('downloadMapBtn').addEventListener('click', downloadMap);
+            
+            // Slider updates
+            ['opacity', 'lineWidth'].forEach(sliderId => {
+                document.getElementById(sliderId).addEventListener('input', updateSliderValue);
+            });
+        }
+
+        function updateSliderValue(event) {
+            const slider = event.target;
+            const valueSpan = document.getElementById(slider.id + 'Value');
+            valueSpan.textContent = slider.value;
+        }
+
+        function showProgress(show = true, text = 'Processing files...') {
+            const container = document.getElementById('progressContainer');
+            const progressText = document.getElementById('progressText');
+            
+            if (show) {
+                container.classList.remove('hidden');
+                progressText.textContent = text;
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function updateProgress(percentage) {
+            const fill = document.getElementById('progressFill');
+            fill.style.width = percentage + '%';
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+
+        function handleDataFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showProgress(true, 'Processing data file...');
+            updateProgress(25);
+
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+
+            if (fileExtension === 'csv') {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        updateProgress(75);
+                        processData(results.data, fileName);
+                        updateProgress(100);
+                        setTimeout(() => showProgress(false), 1000);
+                    },
+                    error: function(error) {
+                        showProgress(false);
+                        showAlert('Error reading CSV file: ' + error.message, 'error');
+                    }
+                });
+            } else if (['xlsx', 'xls'].includes(fileExtension)) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        updateProgress(50);
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        updateProgress(75);
+                        processData(jsonData, fileName);
+                        updateProgress(100);
+                        setTimeout(() => showProgress(false), 1000);
+                    } catch (error) {
+                        showProgress(false);
+                        showAlert('Error reading Excel file: ' + error.message, 'error');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                showProgress(false);
+                showAlert('Unsupported file type. Please upload CSV or Excel files.', 'error');
+                return;
+            }
+        }
+
+        function handleShapefileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.toLowerCase().endsWith('.zip')) {
+                showAlert('Please upload a ZIP file containing shapefile components (.shp, .shx, .dbf)', 'error');
+                return;
+            }
+
+            showProgress(true, 'Processing shapefile...');
+            updateProgress(10);
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    updateProgress(30);
+                    shp(e.target.result).then(function(geojson) {
+                        updateProgress(80);
+                        processShapefile(geojson);
+                        updateProgress(100);
+                        setTimeout(() => showProgress(false), 1000);
+                    }).catch(function(error) {
+                        showProgress(false);
+                        showAlert('Error processing shapefile: ' + error.message, 'error');
+                    });
+                } catch (error) {
+                    showProgress(false);
+                    showAlert('Error reading ZIP file: ' + error.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processData(data, fileName) {
+            if (!data || data.length === 0) {
+                showAlert('The file appears to be empty or invalid.', 'error');
+                return;
+            }
+
+            currentData = data;
+            
+            // Populate map column options
+            const mapColumnSelect = document.getElementById('mapColumn');
+            mapColumnSelect.innerHTML = '<option value="">Choose a column...</option>';
+            
+            const columns = Object.keys(data[0]);
+            columns.forEach(column => {
+                const option = document.createElement('option');
+                option.value = column;
+                option.textContent = column;
+                mapColumnSelect.appendChild(option);
+            });
+
+            showAlert('Data file uploaded successfully!', 'success');
+            checkIfReadyForConfig();
+        }
+
+        function processShapefile(geojson) {
+            if (!geojson || !geojson.features || geojson.features.length === 0) {
+                showAlert('Invalid shapefile or no features found.', 'error');
+                return;
+            }
+
+            shapefileData = geojson;
+            
+            // Populate join column options based on shapefile properties
+            const joinColumnSelect = document.getElementById('joinColumn');
+            joinColumnSelect.innerHTML = '<option value="">Choose a property...</option>';
+            
+            if (geojson.features.length > 0 && geojson.features[0].properties) {
+                const properties = Object.keys(geojson.features[0].properties);
+                properties.forEach(prop => {
+                    const option = document.createElement('option');
+                    option.value = prop;
+                    option.textContent = prop;
+                    joinColumnSelect.appendChild(option);
+                });
+            }
+
+            showAlert('Shapefile uploaded successfully!', 'success');
+            checkIfReadyForConfig();
+        }
+
+        function checkIfReadyForConfig() {
+            if (currentData && shapefileData) {
+                document.getElementById('configSection').classList.remove('hidden');
+            }
+        }
+
+        function loadCategories() {
+            const mapColumn = document.getElementById('mapColumn').value;
+            if (!mapColumn || !currentData) return;
+
+            // Get unique values from the selected column
+            const uniqueValues = [...new Set(currentData.map(row => row[mapColumn]).filter(val => val != null))];
+            uniqueValues.sort();
+
+            selectedCategories = uniqueValues;
+            displayCategoriesConfig();
+            document.getElementById('categoriesSection').classList.remove('hidden');
+        }
+
+        function displayCategoriesConfig() {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+
+            selectedCategories.forEach((category, index) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category-config';
+                
+                const defaultColorIndex = index % Object.keys(niceColors).length;
+                const defaultColorName = Object.keys(niceColors)[defaultColorIndex];
+                
+                categoryDiv.innerHTML = `
+                    <h4>${category}</h4>
+                    <div class="form-group">
+                        <label>Select Color:</label>
+                        <select class="form-control category-color-select" data-category="${category}">
+                            ${Object.keys(niceColors).map(colorName => 
+                                `<option value="${colorName}" ${colorName === defaultColorName ? 'selected' : ''}>${colorName}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                `;
+                
+                container.appendChild(categoryDiv);
+                
+                // Set default color
+                categoryColors[category] = niceColors[defaultColorName];
+            });
+
+            // Bind color change events
+            document.querySelectorAll('.category-color-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    const category = this.dataset.category;
+                    const colorName = this.value;
+                    categoryColors[category] = niceColors[colorName];
+                });
+            });
+        }
+
+        function generateMap() {
+            const mapTitle = document.getElementById('mapTitle').value;
+            const mapColumn = document.getElementById('mapColumn').value;
+            const joinColumn = document.getElementById('joinColumn').value;
+            const legendTitle = document.getElementById('legendTitle').value;
+            
+            if (!mapTitle) {
+                showAlert('Please enter a map title', 'error');
+                return;
+            }
+            if (!mapColumn) {
+                showAlert('Please select a data column', 'error');
+                return;
+            }
+            if (!joinColumn) {
+                showAlert('Please select a join column', 'error');
+                return;
+            }
+
+            showProgress(true, 'Generating map...');
+            updateProgress(20);
+
+            // Create data lookup object
+            const dataLookup = {};
+            currentData.forEach(row => {
+                const key = String(row[joinColumn]).trim();
+                dataLookup[key] = row[mapColumn];
+            });
+
+            updateProgress(50);
+
+            // Initialize map
+            document.getElementById('mapSection').classList.remove('hidden');
+            document.getElementById('mapSectionTitle').textContent = mapTitle;
+            
+            if (map) {
+                map.remove();
+            }
+
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([0, 0], 2);
+
+            // Add transparent tile layer (no background tiles)
+            L.tileLayer('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', {
+                attribution: '',
+                opacity: 0
+            }).addTo(map);
+
+            updateProgress(70);
+
+            // Style function for features
+            function styleFeature(feature) {
+                const joinValue = String(feature.properties[joinColumn]).trim();
+                const dataValue = dataLookup[joinValue];
+                
+                let fillColor = niceColors[document.getElementById('missingValueColor').value];
+                
+                if (dataValue !== undefined && dataValue !== null) {
+                    fillColor = categoryColors[dataValue] || fillColor;
+                }
+                
+                return {
+                    fillColor: fillColor,
+                    weight: parseFloat(document.getElementById('lineWidth').value),
+                    opacity: 1,
+                    color: niceColors[document.getElementById('lineColor').value],
+                    fillOpacity: parseFloat(document.getElementById('opacity').value)
+                };
+            }
+
+            // Add GeoJSON layer
+            geoJsonLayer = L.geoJSON(shapefileData, {
+                style: styleFeature,
+                onEachFeature: function(feature, layer) {
+                    const joinValue = String(feature.properties[joinColumn]).trim();
+                    const dataValue = dataLookup[joinValue] || 'No Data';
+                    
+                    layer.bindPopup(`
+                        <strong>${joinColumn}:</strong> ${joinValue}<br>
+                        <strong>${mapColumn}:</strong> ${dataValue}
+                    `);
+                }
+            }).addTo(map);
+
+            // Fit map to bounds with padding to remove surrounding areas
+            const bounds = geoJsonLayer.getBounds();
+            map.fitBounds(bounds, {
+                padding: [0, 0]
+            });
+
+            // Disable drag and zoom to keep it focused
+            map.dragging.disable();
+            map.touchZoom.disable();
+            map.doubleClickZoom.disable();
+            map.scrollWheelZoom.disable();
+            map.boxZoom.disable();
+            map.keyboard.disable();
+
+            updateProgress(90);
+
+            // Create legend
+            createLegend(legendTitle || 'Legend');
+
+            updateProgress(100);
+            setTimeout(() => showProgress(false), 1000);
+
+            showAlert('Map generated successfully!', 'success');
+        }
+
+        function createLegend(title) {
+            // Remove existing legend
+            const existingLegend = document.querySelector('.legend');
+            if (existingLegend) {
+                existingLegend.remove();
+            }
+
+            const legend = document.createElement('div');
+            legend.className = 'legend';
+            
+            let legendHTML = `<h4>${title}</h4>`;
+            
+            // Add category items
+            selectedCategories.forEach(category => {
+                const color = categoryColors[category];
+                legendHTML += `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: ${color};"></div>
+                        <span>${category}</span>
+                    </div>
+                `;
+            });
+
+            // Add no data item
+            const noDataColor = niceColors[document.getElementById('missingValueColor').value];
+            const noDataLabel = document.getElementById('missingValueLabel').value;
+            legendHTML += `
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: ${noDataColor};"></div>
+                    <span>${noDataLabel}</span>
+                </div>
+            `;
+
+            legend.innerHTML = legendHTML;
+            document.getElementById('mapContainer').appendChild(legend);
+        }
+
+        function downloadMap() {
+            const mapElement = document.getElementById('mapContainer');
+            const imageName = document.getElementById('imageName').value || 'Generated_Map';
+            
+            html2canvas(mapElement, {
+                useCORS: true,
+                scale: 2,
+                backgroundColor: '#ffffff'
+            }).then(function(canvas) {
+                const link = document.createElement('a');
+                link.download = imageName + '.png';
+                link.href = canvas.toDataURL();
+                link.click();
+                showAlert('Map downloaded successfully!', 'success');
+            }).catch(function(error) {
+                showAlert('Error downloading map: ' + error.message, 'error');
+            });
+        }
+    </script>
+</body>
+</html>
