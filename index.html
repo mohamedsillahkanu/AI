@@ -1016,35 +1016,41 @@
             const mapElement = document.getElementById('mapContainer');
             const imageName = document.getElementById('imageName').value || 'Generated_Map';
             
-            // Temporarily adjust styles for better capture
-            const originalStyle = mapElement.style.cssText;
-            mapElement.style.padding = '20px';
-            mapElement.style.boxSizing = 'content-box';
-            
-            html2canvas(mapElement, {
-                useCORS: true,
-                scale: 2,
-                backgroundColor: '#ffffff',
-                width: mapElement.offsetWidth + 40,
-                height: mapElement.offsetHeight + 40,
-                scrollX: 0,
-                scrollY: 0,
-                allowTaint: false,
-                foreignObjectRendering: true
-            }).then(function(canvas) {
-                // Restore original style
-                mapElement.style.cssText = originalStyle;
-                
-                const link = document.createElement('a');
-                link.download = imageName + '.png';
-                link.href = canvas.toDataURL('image/png', 1.0);
-                link.click();
-                showAlert('Map downloaded successfully!', 'success');
-            }).catch(function(error) {
-                // Restore original style on error
-                mapElement.style.cssText = originalStyle;
-                showAlert('Error downloading map: ' + error.message, 'error');
-            });
+            // Wait a moment for map to fully render
+            setTimeout(() => {
+                html2canvas(mapElement, {
+                    useCORS: true,
+                    allowTaint: true,
+                    scale: 1,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    imageTimeout: 15000,
+                    removeContainer: false,
+                    foreignObjectRendering: false,
+                    ignoreElements: function(element) {
+                        // Ignore some problematic elements
+                        return element.classList && (
+                            element.classList.contains('leaflet-control-container') ||
+                            element.classList.contains('leaflet-pane')
+                        );
+                    }
+                }).then(function(canvas) {
+                    try {
+                        const link = document.createElement('a');
+                        link.download = imageName + '.png';
+                        link.href = canvas.toDataURL('image/png');
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        showAlert('Map downloaded successfully!', 'success');
+                    } catch (error) {
+                        showAlert('Error creating download link: ' + error.message, 'error');
+                    }
+                }).catch(function(error) {
+                    console.error('html2canvas error:', error);
+                    showAlert('Error capturing map. Please try again or check browser console for details.', 'error');
+                });
+            }, 1000);
         }
     </script>
 </body>
