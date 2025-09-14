@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Facilities Distribution</title>
+    <title>Map Generator - Blue Dark Theme</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * {
             margin: 0;
@@ -32,6 +31,7 @@
             margin-bottom: 2rem;
             border-radius: 0 0 1rem 1rem;
             box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
         }
 
         .main-header h1 {
@@ -40,13 +40,18 @@
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
         }
 
+        .main-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 0 1rem;
         }
 
-        .upload-section {
+        .section {
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
             backdrop-filter: blur(15px);
             padding: 2rem;
@@ -56,38 +61,85 @@
             border: 1px solid rgba(37, 99, 235, 0.2);
         }
 
-        .upload-section h3 {
+        .section h3 {
             color: #93c5fd;
             margin-bottom: 1rem;
             font-size: 1.5rem;
         }
 
-        .file-input-wrapper {
-            margin: 1rem 0;
-        }
-
-        .shapefile-section {
-            background: rgba(30, 41, 59, 0.3);
-            padding: 1.5rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            border: 1px solid rgba(37, 99, 235, 0.1);
-        }
-
-        .shapefile-section h4 {
-            color: #93c5fd;
+        .section p {
+            color: #9ca3af;
             margin-bottom: 1rem;
-            font-size: 1.2rem;
         }
 
-        .shapefile-inputs {
+        .colors-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.5rem;
             margin: 1rem 0;
         }
 
-        .file-input-label {
+        .color-item {
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .color-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: #93c5fd;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid rgba(30, 64, 175, 0.3);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: rgba(15, 23, 42, 0.9);
+            color: #e1effe;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 1rem 0;
+        }
+
+        .file-input {
             display: inline-block;
             padding: 15px 30px;
             background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
@@ -98,179 +150,17 @@
             font-weight: 600;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(29, 78, 216, 0.4);
-            margin: 0.5rem 0.5rem 0.5rem 0;
-            text-align: center;
-            width: 100%;
         }
 
-        .file-input-label:hover {
+        .file-input:hover {
             background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
             transform: translateY(-3px);
             box-shadow: 0 8px 25px rgba(29, 78, 216, 0.6);
         }
 
-        .file-input-label input[type="file"] {
+        .file-input input[type="file"] {
             position: absolute;
             left: -9999px;
-        }
-
-        .file-status {
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
-            padding: 0.5rem;
-            border-radius: 5px;
-        }
-
-        .file-status.uploaded {
-            background: rgba(5, 150, 105, 0.2);
-            color: #6ee7b7;
-            border-left: 3px solid #059669;
-        }
-
-        .file-status.missing {
-            background: rgba(220, 38, 38, 0.2);
-            color: #fca5a5;
-            border-left: 3px solid #dc2626;
-        }
-
-        .controls-section {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
-            backdrop-filter: blur(15px);
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            margin: 2rem 0;
-            border: 1px solid rgba(37, 99, 235, 0.2);
-            display: none;
-        }
-
-        .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .control-group label {
-            color: #cbd5e1;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .control-group input, .control-group select {
-            padding: 10px 12px;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
-            border: 2px solid #475569;
-            border-radius: 8px;
-            color: #e2e8f0;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .control-group input:focus, .control-group select:focus {
-            outline: none;
-            border-color: #60a5fa;
-            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
-        }
-
-        .control-group input[type="range"] {
-            background: transparent;
-            -webkit-appearance: none;
-            height: 6px;
-            border-radius: 3px;
-            background: linear-gradient(to right, #1d4ed8, #60a5fa);
-            outline: none;
-        }
-
-        .map-container {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
-            backdrop-filter: blur(15px);
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            margin: 2rem 0;
-            border: 1px solid rgba(37, 99, 235, 0.2);
-            display: none;
-        }
-
-        .map-container h3 {
-            color: #93c5fd;
-            margin-bottom: 1.5rem;
-            font-size: 1.4rem;
-            text-align: center;
-        }
-
-        #map {
-            height: 600px;
-            width: 100%;
-            border-radius: 10px;
-            border: 2px solid rgba(37, 99, 235, 0.3);
-            background: white;
-        }
-
-        .stats-container {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
-            backdrop-filter: blur(15px);
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            margin: 2rem 0;
-            border: 1px solid rgba(37, 99, 235, 0.2);
-            display: none;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.8) 100%);
-            padding: 1.5rem;
-            text-align: center;
-            border-radius: 10px;
-            border: 1px solid rgba(37, 99, 235, 0.2);
-        }
-
-        .stat-card h4 {
-            color: #6b7280;
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .stat-card .stat-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #93c5fd;
-            margin-bottom: 0.5rem;
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background: linear-gradient(135deg, rgba(5, 150, 105, 0.2) 0%, rgba(4, 120, 87, 0.2) 100%);
-            border-left: 4px solid #059669;
-            color: #6ee7b7;
-        }
-
-        .alert-error {
-            background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(185, 28, 28, 0.2) 100%);
-            border-left: 4px solid #dc2626;
-            color: #fca5a5;
         }
 
         .btn {
@@ -295,6 +185,121 @@
         .btn-primary:hover {
             background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
             transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(29, 78, 216, 0.6);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+            transform: translateY(-2px);
+        }
+
+        .category-config {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.8) 100%);
+            backdrop-filter: blur(15px);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .category-config h4 {
+            color: #93c5fd;
+            margin-bottom: 1rem;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 500px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            margin: 2rem 0;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            backdrop-filter: blur(15px);
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, rgba(5, 150, 105, 0.2) 0%, rgba(4, 120, 87, 0.2) 100%);
+            border-left: 4px solid #059669;
+            color: #6ee7b7;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(185, 28, 28, 0.2) 100%);
+            border-left: 4px solid #dc2626;
+            color: #fca5a5;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(2, 132, 199, 0.2) 100%);
+            border-left: 4px solid #0ea5e9;
+            color: #7dd3fc;
+        }
+
+        .slider-container {
+            margin: 1rem 0;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: rgba(30, 64, 175, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
         }
 
         .footer {
@@ -304,221 +309,221 @@
             margin-top: 3rem;
             border-top: 1px solid rgba(37, 99, 235, 0.2);
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%);
-        }
-
-        .loading {
-            color: #60a5fa;
-            margin: 1rem 0;
-        }
-
-        /* Legend and statistics box styling */
-        .legend, .statistics-box {
-            background: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            font-size: 12px;
-            line-height: 18px;
-            color: #333;
-        }
-
-        .legend h4, .statistics-box h4 {
-            margin: 0 0 5px;
-            font-size: 14px;
-            color: #333;
-        }
-
-        .legend i {
-            float: left;
-            margin-right: 8px;
-            opacity: 0.7;
-        }
-
-        .statistics-box {
-            font-size: 11px;
-            line-height: 14px;
-            max-width: 200px;
+            backdrop-filter: blur(10px);
         }
 
         @media (max-width: 768px) {
             .main-header h1 {
                 font-size: 2rem;
             }
-            
+
             .container {
                 padding: 0 10px;
+            }
+
+            .section {
+                padding: 1rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
     <div class="main-header">
-        <h1>Health Facilities Distribution</h1>
-        <p>Sierra Leone Health Facilities Interactive Map</p>
+        <h1>MAP GENERATOR</h1>
+        <p>Create customized maps with your data</p>
     </div>
 
     <div class="container">
-        <!-- Upload Section -->
-        <div class="upload-section">
-            <h3>Upload Your Data Files</h3>
-            <p>Upload your Excel file with health facility coordinates and the three shapefile components (.shp, .shx, .dbf)</p>
+        <!-- Available Colors Section -->
+        <div class="section">
+            <h3>Available Colors</h3>
+            <div class="colors-grid" id="colorsGrid">
+                <!-- Colors will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- File Upload Section -->
+        <div class="section">
+            <h3>Upload Data File</h3>
+            <p>Upload an Excel or CSV file with your mapping data</p>
             
             <div class="file-input-wrapper">
-                <label class="file-input-label">
-                    Choose Excel File (Health Facilities)
-                    <input type="file" id="excelInput" accept=".xlsx,.xls">
+                <label class="file-input">
+                    Choose File
+                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
                 </label>
-                <div id="excelStatus" class="file-status missing">No Excel file selected</div>
             </div>
-
-            <div class="shapefile-section">
-                <h4>Shapefile Components (All three files required)</h4>
-                <div class="shapefile-inputs">
-                    <div>
-                        <label class="file-input-label">
-                            Choose .shp file
-                            <input type="file" id="shpInput" accept=".shp">
-                        </label>
-                        <div id="shpStatus" class="file-status missing">No .shp file selected</div>
-                    </div>
-                    
-                    <div>
-                        <label class="file-input-label">
-                            Choose .shx file
-                            <input type="file" id="shxInput" accept=".shx">
-                        </label>
-                        <div id="shxStatus" class="file-status missing">No .shx file selected</div>
-                    </div>
-                    
-                    <div>
-                        <label class="file-input-label">
-                            Choose .dbf file
-                            <input type="file" id="dbfInput" accept=".dbf">
-                        </label>
-                        <div id="dbfStatus" class="file-status missing">No .dbf file selected</div>
-                    </div>
-                </div>
-                
-                <div style="text-align: center; margin-top: 1rem;">
-                    <button class="btn btn-primary" id="processShapefileBtn" onclick="processShapefiles()" disabled>
-                        Process Shapefile Components
-                    </button>
-                </div>
-            </div>
-            
-            <div id="uploadStatus"></div>
         </div>
 
-        <!-- Alerts Container -->
+        <!-- Alert Container -->
         <div id="alertContainer"></div>
 
-        <!-- Map Customization Controls -->
-        <div class="controls-section" id="controlsSection">
-            <h3>Map Customization</h3>
+        <!-- Map Configuration Section -->
+        <div id="configSection" class="section hidden">
+            <h3>Map Configuration</h3>
             
-            <div class="controls-grid">
-                <div class="control-group">
-                    <label for="mapTitle">Map Title</label>
-                    <input type="text" id="mapTitle" value="Health Facility Distribution">
-                </div>
-                
-                <div class="control-group">
-                    <label for="pointSize">Point Size: <span id="pointSizeValue">8</span></label>
-                    <input type="range" id="pointSize" min="3" max="20" value="8">
-                </div>
-                
-                <div class="control-group">
-                    <label for="pointColor">Point Color</label>
-                    <select id="pointColor">
-                        <option value="#47B5FF" selected>Blue</option>
-                        <option value="#ff4757">Red</option>
-                        <option value="#2ed573">Green</option>
-                        <option value="#a55eea">Purple</option>
-                        <option value="#ffa502">Orange</option>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="mapColumn">Select Map Column:</label>
+                    <select id="mapColumn" class="form-control">
+                        <option value="">Choose a column...</option>
                     </select>
                 </div>
-                
-                <div class="control-group">
-                    <label for="backgroundColor">Background Color</label>
-                    <select id="backgroundColor">
-                        <option value="white" selected>White</option>
-                        <option value="lightgray">Light Gray</option>
-                        <option value="lightblue">Light Blue</option>
-                        <option value="beige">Beige</option>
+                <div class="form-group">
+                    <label for="mapTitle">Map Title:</label>
+                    <input type="text" id="mapTitle" class="form-control" placeholder="Enter map title">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="legendTitle">Legend Title:</label>
+                    <input type="text" id="legendTitle" class="form-control" placeholder="Enter legend title">
+                </div>
+                <div class="form-group">
+                    <label for="imageName">Image Name:</label>
+                    <input type="text" id="imageName" class="form-control" value="Generated_Map">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fontSize">Font Size: <span id="fontSizeValue">15</span>px</label>
+                    <input type="range" id="fontSize" class="slider" min="8" max="24" value="15">
+                </div>
+                <div class="form-group">
+                    <label for="lineWidth">Line Width: <span id="lineWidthValue">0.5</span></label>
+                    <input type="range" id="lineWidth" class="slider" min="0.5" max="5" step="0.1" value="0.5">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="lineColor">Line Color:</label>
+                    <select id="lineColor" class="form-control">
+                        <!-- Populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="missingValueColor">Missing Values Color:</label>
+                    <select id="missingValueColor" class="form-control">
+                        <!-- Populated by JavaScript -->
                     </select>
                 </div>
             </div>
-            
-            <div style="margin-top: 2rem; text-align: center;">
-                <button class="btn btn-primary" onclick="updateMapStyle()">Update Map Style</button>
-                <button class="btn btn-primary" onclick="downloadMap()">Download Map</button>
+
+            <div class="form-group">
+                <label for="missingValueLabel">Missing Values Label:</label>
+                <input type="text" id="missingValueLabel" class="form-control" value="No Data">
             </div>
         </div>
 
-        <!-- Map Container -->
-        <div class="map-container" id="mapContainer">
-            <h3 id="mapTitleDisplay">Health Facility Distribution</h3>
-            <div id="map"></div>
-        </div>
-
-        <!-- Statistics Container -->
-        <div class="stats-container" id="statsContainer">
-            <h3>Data Statistics</h3>
-            <div class="stats-grid" id="statsGrid">
-                <!-- Stats will be populated here -->
+        <!-- Categories Section -->
+        <div id="categoriesSection" class="section hidden">
+            <h3>Select Categories and Colors</h3>
+            <div id="categoriesContainer">
+                <!-- Categories will be populated by JavaScript -->
             </div>
             
-            <div style="margin-top: 2rem; text-align: center;">
-                <button class="btn btn-primary" onclick="downloadProcessedData()">Download Processed Data (CSV)</button>
+            <div style="text-align: center; margin-top: 2rem;">
+                <button id="generateMapBtn" class="btn btn-primary">Generate Map</button>
+            </div>
+        </div>
+
+        <!-- Map Display Section -->
+        <div id="mapSection" class="section hidden">
+            <h3>Generated Map</h3>
+            <div id="mapContainer" class="map-container"></div>
+            
+            <div style="text-align: center; margin-top: 1rem;">
+                <button id="downloadMapBtn" class="btn btn-success">Download Map as PNG</button>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
     <div class="footer">
-        <p>Health Facilities Distribution Tool | Simple Upload & Visualization</p>
+        <p>Map Generator Tool | Built with HTML, CSS & JavaScript</p>
     </div>
 
     <script>
-        let map;
-        let facilitiesData = [];
-        let boundaryLayer = null;
-        let facilitiesLayer = null;
-        let shapefileComponents = {
-            shp: null,
-            shx: null,
-            dbf: null
+        // Color palette
+        const niceColors = {
+            "Black": "#000000",
+            "Light Blue": "#4CA3DD",
+            "Soft Green": "#5DBE7E",
+            "Coral": "#FF7F50",
+            "Lavender": "#9A7CB7",
+            "Gold": "#FFBE4D",
+            "Teal": "#35B0AB",
+            "Salmon": "#FF9E80",
+            "Sky Blue": "#89CFF0",
+            "Mint": "#98FB98",
+            "Peach": "#FFDAB9",
+            "White": "#FFFFFF",
+            "Light Gray": "#D3D3D3",
+            "Gray": "#808080",
+            "Dark Gray": "#404040",
+            "Silver": "#C0C0C0",
+            "Slate Gray": "#708090"
         };
 
-        // Initialize
+        let currentData = null;
+        let selectedCategories = [];
+        let categoryColors = {};
+
+        // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
-            initializeMap();
-            setupEventListeners();
+            populateColors();
+            populateColorSelects();
+            bindEventListeners();
         });
 
-        function setupEventListeners() {
-            document.getElementById('excelInput').addEventListener('change', handleExcelUpload);
-            document.getElementById('shpInput').addEventListener('change', (e) => handleShapefileComponent(e, 'shp'));
-            document.getElementById('shxInput').addEventListener('change', (e) => handleShapefileComponent(e, 'shx'));
-            document.getElementById('dbfInput').addEventListener('change', (e) => handleShapefileComponent(e, 'dbf'));
-            document.getElementById('pointSize').addEventListener('input', updateRangeValue);
-            document.getElementById('mapTitle').addEventListener('input', updateMapTitle);
+        function populateColors() {
+            const colorsGrid = document.getElementById('colorsGrid');
+            colorsGrid.innerHTML = '';
+
+            Object.entries(niceColors).forEach(([name, hex]) => {
+                const colorItem = document.createElement('div');
+                colorItem.className = 'color-item';
+                colorItem.style.backgroundColor = hex;
+                colorItem.style.color = ['White', 'Light Gray', 'Silver'].includes(name) ? '#000000' : '#FFFFFF';
+                colorItem.textContent = name;
+                colorsGrid.appendChild(colorItem);
+            });
         }
 
-        function initializeMap() {
-            map = L.map('map').setView([8.5, -11.5], 7);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+        function populateColorSelects() {
+            const selects = ['lineColor', 'missingValueColor'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '';
+                Object.keys(niceColors).forEach((colorName, index) => {
+                    const option = document.createElement('option');
+                    option.value = colorName;
+                    option.textContent = colorName;
+                    if (selectId === 'lineColor' && index === 0) option.selected = true;
+                    if (selectId === 'missingValueColor' && index === 1) option.selected = true;
+                    select.appendChild(option);
+                });
+            });
         }
 
-        function updateRangeValue(event) {
-            document.getElementById(event.target.id + 'Value').textContent = event.target.value;
+        function bindEventListeners() {
+            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+            document.getElementById('mapColumn').addEventListener('change', loadCategories);
+            document.getElementById('generateMapBtn').addEventListener('click', generateMap);
+            document.getElementById('fontSize').addEventListener('input', updateSliderValue);
+            document.getElementById('lineWidth').addEventListener('input', updateSliderValue);
         }
 
-        function updateMapTitle() {
-            const title = document.getElementById('mapTitle').value;
-            document.getElementById('mapTitleDisplay').textContent = title;
+        function updateSliderValue(event) {
+            const slider = event.target;
+            const valueSpan = document.getElementById(slider.id + 'Value');
+            valueSpan.textContent = slider.value;
         }
 
         function showAlert(message, type = 'info') {
@@ -529,6 +534,7 @@
             
             alertContainer.appendChild(alertDiv);
             
+            // Auto-remove after 5 seconds
             setTimeout(() => {
                 if (alertDiv.parentNode) {
                     alertDiv.parentNode.removeChild(alertDiv);
@@ -536,333 +542,171 @@
             }, 5000);
         }
 
-        function handleExcelUpload(event) {
+        function handleFileUpload(event) {
             const file = event.target.files[0];
-            const statusDiv = document.getElementById('excelStatus');
-            
-            if (!file) {
-                statusDiv.className = 'file-status missing';
-                statusDiv.textContent = 'No Excel file selected';
-                return;
-            }
+            if (!file) return;
 
-            statusDiv.className = 'file-status uploaded';
-            statusDiv.textContent = `✓ ${file.name} selected`;
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
 
-            document.getElementById('uploadStatus').innerHTML = '<div class="loading">Processing Excel file...</div>';
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                    processHealthFacilities(jsonData);
-                } catch (error) {
-                    showAlert('Error reading Excel file: ' + error.message, 'error');
-                    document.getElementById('uploadStatus').innerHTML = '';
-                    statusDiv.className = 'file-status missing';
-                    statusDiv.textContent = 'Error reading file';
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function handleShapefileComponent(event, type) {
-            const file = event.target.files[0];
-            const statusDiv = document.getElementById(type + 'Status');
-            
-            if (!file) {
-                statusDiv.className = 'file-status missing';
-                statusDiv.textContent = `No .${type} file selected`;
-                shapefileComponents[type] = null;
-            } else {
-                statusDiv.className = 'file-status uploaded';
-                statusDiv.textContent = `✓ ${file.name} selected`;
-                
-                // Read file as ArrayBuffer and store
+            if (fileExtension === 'csv') {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        processData(results.data, fileName);
+                    },
+                    error: function(error) {
+                        showAlert('Error reading CSV file: ' + error.message, 'error');
+                    }
+                });
+            } else if (['xlsx', 'xls'].includes(fileExtension)) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    shapefileComponents[type] = e.target.result;
-                    checkShapefileComplete();
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        processData(jsonData, fileName);
+                    } catch (error) {
+                        showAlert('Error reading Excel file: ' + error.message, 'error');
+                    }
                 };
                 reader.readAsArrayBuffer(file);
-            }
-        }
-
-        function checkShapefileComplete() {
-            const hasAll = shapefileComponents.shp && shapefileComponents.shx && shapefileComponents.dbf;
-            const button = document.getElementById('processShapefileBtn');
-            
-            button.disabled = !hasAll;
-            if (hasAll) {
-                button.textContent = 'Process Shapefile Components (Ready!)';
-                button.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
             } else {
-                button.textContent = 'Process Shapefile Components';
-                button.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)';
+                showAlert('Unsupported file type. Please upload CSV or Excel files.', 'error');
+                return;
             }
         }
 
-        function processHealthFacilities(data) {
+        function processData(data, fileName) {
             if (!data || data.length === 0) {
-                showAlert('The Excel file appears to be empty or invalid.', 'error');
-                document.getElementById('uploadStatus').innerHTML = '';
+                showAlert('The file appears to be empty or invalid.', 'error');
                 return;
             }
 
-            // Look for coordinate columns (flexible naming)
-            const firstRow = data[0];
-            const columns = Object.keys(firstRow);
+            currentData = data;
             
-            let lonCol = 'w_long';
-            let latCol = 'w_lat';
+            // Populate map column options
+            const mapColumnSelect = document.getElementById('mapColumn');
+            mapColumnSelect.innerHTML = '<option value="">Choose a column...</option>';
             
-            // Try to find longitude column
-            const lonCandidates = ['w_long', 'longitude', 'long', 'lng', 'x'];
-            lonCol = lonCandidates.find(col => columns.includes(col)) || columns.find(col => 
-                col.toLowerCase().includes('long') || col.toLowerCase().includes('x')
+            const columns = Object.keys(data[0]);
+            const availableColumns = columns.filter(col => 
+                !['FIRST_DNAM', 'FIRST_CHIE', 'adm3'].includes(col)
             );
             
-            // Try to find latitude column  
-            const latCandidates = ['w_lat', 'latitude', 'lat', 'y'];
-            latCol = latCandidates.find(col => columns.includes(col)) || columns.find(col => 
-                col.toLowerCase().includes('lat') || col.toLowerCase().includes('y')
-            );
-
-            if (!lonCol || !latCol) {
-                showAlert('Could not find longitude/latitude columns. Expected columns like: w_long, w_lat, longitude, latitude', 'error');
-                document.getElementById('uploadStatus').innerHTML = '';
-                return;
-            }
-
-            // Process and validate coordinates
-            facilitiesData = data.filter(row => {
-                const lon = parseFloat(row[lonCol]);
-                const lat = parseFloat(row[latCol]);
-                return !isNaN(lon) && !isNaN(lat) && 
-                       lon >= -180 && lon <= 180 && 
-                       lat >= -90 && lat <= 90;
-            }).map(row => ({
-                ...row,
-                longitude: parseFloat(row[lonCol]),
-                latitude: parseFloat(row[latCol])
-            }));
-
-            if (facilitiesData.length === 0) {
-                showAlert('No valid coordinates found in the data.', 'error');
-                document.getElementById('uploadStatus').innerHTML = '';
-                return;
-            }
-
-            document.getElementById('uploadStatus').innerHTML = `
-                <div style="color: #6ee7b7;">✓ Loaded ${facilitiesData.length} health facilities</div>
-            `;
-
-            showAlert(`Successfully loaded ${facilitiesData.length} health facilities!`, 'success');
-            updateStatsAndMap();
-        }
-
-        async function processShapefiles() {
-            if (!shapefileComponents.shp || !shapefileComponents.shx || !shapefileComponents.dbf) {
-                showAlert('Please upload all three shapefile components (.shp, .shx, .dbf)', 'error');
-                return;
-            }
-
-            // Check if shp library is loaded
-            if (typeof shp === 'undefined') {
-                showAlert('Shapefile processing library not loaded. Please refresh the page and try again.', 'error');
-                return;
-            }
-
-            document.getElementById('uploadStatus').innerHTML = '<div class="loading">Processing shapefile components...</div>';
-
-            try {
-                // Create a combined buffer object that shp.js can understand
-                const combinedShapefile = {
-                    shp: shapefileComponents.shp,
-                    shx: shapefileComponents.shx,
-                    dbf: shapefileComponents.dbf
-                };
-
-                const geojson = await shp(combinedShapefile);
-                
-                if (geojson && geojson.features) {
-                    // Add boundary layer to map
-                    if (boundaryLayer) {
-                        map.removeLayer(boundaryLayer);
-                    }
-                    
-                    boundaryLayer = L.geoJSON(geojson, {
-                        style: {
-                            fillColor: 'lightblue',
-                            fillOpacity: 0.2,
-                            color: '#333333',
-                            weight: 2,
-                            opacity: 0.8
-                        }
-                    }).addTo(map);
-
-                    // Fit map to boundaries
-                    map.fitBounds(boundaryLayer.getBounds());
-
-                    document.getElementById('uploadStatus').innerHTML += `
-                        <div style="color: #6ee7b7;">✓ Loaded ${geojson.features.length} boundary features</div>
-                    `;
-
-                    showAlert(`Successfully loaded ${geojson.features.length} boundary features!`, 'success');
-                    updateStatsAndMap();
-                } else {
-                    throw new Error('Invalid shapefile format or missing components');
-                }
-            } catch (error) {
-                console.error('Shapefile processing error:', error);
-                showAlert('Error processing shapefile: ' + error.message + '. Please ensure all three files (.shp, .shx, .dbf) are from the same shapefile.', 'error');
-                document.getElementById('uploadStatus').innerHTML = '';
-            }
-        }
-
-        function updateStatsAndMap() {
-            // Show controls and map sections
-            document.getElementById('controlsSection').style.display = 'block';
-            document.getElementById('mapContainer').style.display = 'block';
-            document.getElementById('statsContainer').style.display = 'block';
-
-            // Update statistics
-            if (facilitiesData.length > 0) {
-                const lons = facilitiesData.map(f => f.longitude);
-                const lats = facilitiesData.map(f => f.latitude);
-                
-                document.getElementById('statsGrid').innerHTML = `
-                    <div class="stat-card">
-                        <h4>Total Facilities</h4>
-                        <div class="stat-value">${facilitiesData.length}</div>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Longitude Range</h4>
-                        <div class="stat-value">${Math.min(...lons).toFixed(2)}° to ${Math.max(...lons).toFixed(2)}°</div>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Latitude Range</h4>
-                        <div class="stat-value">${Math.min(...lats).toFixed(2)}° to ${Math.max(...lats).toFixed(2)}°</div>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Boundary Areas</h4>
-                        <div class="stat-value">${boundaryLayer ? boundaryLayer.getLayers().length : 0}</div>
-                    </div>
-                `;
-            }
-
-            // Add facilities to map
-            addFacilitiesToMap();
-        }
-
-        function addFacilitiesToMap() {
-            if (facilitiesLayer) {
-                map.removeLayer(facilitiesLayer);
-            }
-
-            if (facilitiesData.length === 0) return;
-
-            const pointSize = parseInt(document.getElementById('pointSize').value);
-            const pointColor = document.getElementById('pointColor').value;
-
-            facilitiesLayer = L.layerGroup();
-
-            facilitiesData.forEach(facility => {
-                const marker = L.circleMarker([facility.latitude, facility.longitude], {
-                    radius: pointSize,
-                    fillColor: pointColor,
-                    color: '#333333',
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.7
-                });
-
-                // Create popup content
-                let popupContent = '<div style="color: #333; font-size: 12px;">';
-                Object.keys(facility).forEach(key => {
-                    if (key !== 'longitude' && key !== 'latitude' && facility[key]) {
-                        popupContent += `<strong>${key}:</strong> ${facility[key]}<br>`;
-                    }
-                });
-                popupContent += '</div>';
-                marker.bindPopup(popupContent);
-
-                facilitiesLayer.addLayer(marker);
+            availableColumns.forEach(column => {
+                const option = document.createElement('option');
+                option.value = column;
+                option.textContent = column;
+                mapColumnSelect.appendChild(option);
             });
 
-            facilitiesLayer.addTo(map);
-
-            // Fit map to show all data
-            const allLayers = [];
-            if (boundaryLayer) allLayers.push(...boundaryLayer.getLayers());
-            if (facilitiesLayer) allLayers.push(...facilitiesLayer.getLayers());
-            
-            if (allLayers.length > 0) {
-                const group = L.featureGroup(allLayers);
-                map.fitBounds(group.getBounds());
-            }
+            showAlert('File uploaded successfully!', 'success');
+            document.getElementById('configSection').classList.remove('hidden');
         }
 
-        function updateMapStyle() {
-            updateMapTitle();
-            
-            // Update boundary layer style if it exists
-            if (boundaryLayer) {
-                const backgroundColor = document.getElementById('backgroundColor').value;
-                boundaryLayer.setStyle({
-                    fillColor: backgroundColor,
-                    fillOpacity: 0.8,
-                    color: '#333333',
-                    weight: 2,
-                    opacity: 1
+        function loadCategories() {
+            const mapColumn = document.getElementById('mapColumn').value;
+            if (!mapColumn || !currentData) return;
+
+            // Get unique values from the selected column
+            const uniqueValues = [...new Set(currentData.map(row => row[mapColumn]).filter(val => val != null))];
+            uniqueValues.sort();
+
+            selectedCategories = uniqueValues;
+            displayCategoriesConfig();
+            document.getElementById('categoriesSection').classList.remove('hidden');
+        }
+
+        function displayCategoriesConfig() {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+
+            selectedCategories.forEach((category, index) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category-config';
+                
+                const defaultColorIndex = index % Object.keys(niceColors).length;
+                const defaultColorName = Object.keys(niceColors)[defaultColorIndex];
+                
+                categoryDiv.innerHTML = `
+                    <h4>${category}</h4>
+                    <div class="form-group">
+                        <label>Select Color:</label>
+                        <select class="form-control category-color-select" data-category="${category}">
+                            ${Object.keys(niceColors).map(colorName => 
+                                `<option value="${colorName}" ${colorName === defaultColorName ? 'selected' : ''}>${colorName}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                `;
+                
+                container.appendChild(categoryDiv);
+                
+                // Set default color
+                categoryColors[category] = niceColors[defaultColorName];
+            });
+
+            // Bind color change events
+            document.querySelectorAll('.category-color-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    const category = this.dataset.category;
+                    const colorName = this.value;
+                    categoryColors[category] = niceColors[colorName];
                 });
-            }
+            });
+        }
+
+        function generateMap() {
+            const mapTitle = document.getElementById('mapTitle').value;
+            const legendTitle = document.getElementById('legendTitle').value;
             
-            // Update facilities layer
-            addFacilitiesToMap();
-            showAlert('Map style updated!', 'success');
+            if (!mapTitle) {
+                showAlert('Please enter a map title', 'error');
+                return;
+            }
+
+            // Since we don't have actual geospatial data in this demo,
+            // we'll create a simple visualization
+            showAlert('Map generation feature requires geospatial data integration. This is a UI demonstration.', 'info');
+            
+            // Show map section for demo purposes
+            document.getElementById('mapSection').classList.remove('hidden');
+            
+            // Create a simple demo map container
+            const mapContainer = document.getElementById('mapContainer');
+            mapContainer.innerHTML = `
+                <div style="
+                    width: 100%; 
+                    height: 100%; 
+                    background: linear-gradient(135deg, #e6f3ff 0%, #b3d9ff 100%);
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center;
+                    border-radius: 15px;
+                    font-size: 1.5rem;
+                    color: #1e3a8a;
+                    font-weight: bold;
+                ">
+                    ${mapTitle}<br>
+                    <small style="font-size: 1rem; font-weight: normal; margin-top: 1rem; display: block;">
+                        Map visualization would appear here with actual geospatial data
+                    </small>
+                </div>
+            `;
+            
+            showAlert('Map layout generated! (Demo mode - requires geospatial data for full functionality)', 'success');
         }
 
         function downloadMap() {
-            // Simple download - in a real implementation you'd capture the map as image
-            showAlert('Map download feature would capture the current map view as PNG', 'info');
+            showAlert('Download functionality would export the generated map as PNG', 'info');
         }
 
-        function downloadProcessedData() {
-            if (facilitiesData.length === 0) {
-                showAlert('No data to download', 'error');
-                return;
-            }
-
-            const csv = convertToCSV(facilitiesData);
-            downloadFile(csv, 'processed_health_facilities.csv', 'text/csv');
-            showAlert('Data downloaded successfully!', 'success');
-        }
-
-        function convertToCSV(data) {
-            const headers = Object.keys(data[0]);
-            const csvContent = [
-                headers.join(','),
-                ...data.map(row => headers.map(header => {
-                    const value = row[header];
-                    return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
-                }).join(','))
-            ].join('\n');
-            return csvContent;
-        }
-
-        function downloadFile(content, filename, mimeType) {
-            const blob = new Blob([content], { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
+        // Bind download event
+        document.getElementById('downloadMapBtn').addEventListener('click', downloadMap);
     </script>
 </body>
 </html>
